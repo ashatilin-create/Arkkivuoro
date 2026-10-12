@@ -350,6 +350,7 @@ var TR={
  imp_h:['Добавить присланные смены','Tuo lähetetyt vuorot'],imp_p:['Вставь сюда сообщения с кодом смены (можно несколько сразу).','Liitä tähän viestit, joissa on vuorokoodi (useita kerralla).'],
  imp_b:['Добавить в базу','Lisää tietokantaan'],imp_ok:[function(n,d){return 'Добавлено смен: '+n+(d?' (уже были: '+d+')':'')},function(n,d){return 'Lisätty vuoroja: '+n+(d?' (jo olemassa: '+d+')':'')}],
  imp_none:['Код смены не найден','Vuorokoodia ei löytynyt'],close:['Закрыть','Sulje'],
+ cab_dup:['Только что отмечено. Если ошибка, нажми −1','Juuri merkitty. Jos virhe, paina −1'],
  own_h:['Режим владельца','Omistajatila'],own_in:['Войти','Kirjaudu'],own_out:['Выйти','Kirjaudu ulos'],own_as:[function(e){return 'Вы вошли как '+e},function(e){return 'Kirjautunut: '+e}],
  own_p:['Нужен только для изменения заказов и такта. Сборщикам входить не нужно.','Tarvitaan vain tilausten ja tahtiajan muuttamiseen. Kokoajien ei tarvitse kirjautua.'],
  own_bad:['Неверный email или пароль','Väärä sähköposti tai salasana'],own_ok:['Вход выполнен','Kirjautuminen onnistui'],pw_l:['Пароль','Salasana'],
@@ -374,10 +375,10 @@ var dlabel=function(t0){return new Date(t0).toLocaleDateString(lg()==='ru'?'ru-R
 var SRC={cnc:['ЧПУ','CNC'],edge:['Кромка','Reunanauhoitus'],design:['Заказ/чертёж','Tilaus/suunnittelu'],kit:['Комплектование','Komplektointi'],asm:['Сборка','Kokoonpano'],other:['Прочее / неясно','Muu / epäselvä']};
 var UPSTREAM={cnc:1,edge:1,design:1,kit:1};
 var STATES=[
- {k:'work',ru:'Сборка',fi:'Kokoaminen',cls:'VA',c:'--c-work',reasons:[]},
+ {k:'work',ru:'Сборка',fi:'Kokoaminen',cls:'VA',c:'--c-work',reasons:[],hint:['вкл. фурнитуру, направляющие, ящики','sis. helat, kiskot, laatikot']},
  {k:'prep',ru:'Подготовка',fi:'Valmistelu',cls:'NVA',c:'--c-prep',reasons:[
    ['draw','Чертёж и спецификация','Piirustus ja osaluettelo'],['kit','Комплектование деталей','Osien komplektointi'],
-   ['hw','Фурнитура, направляющие','Helat ja kiskot'],['profile','Распил профилей','Profiilien sahaus'],
+   ['hw','Сбор фурнитуры (не монтаж)','Helojen keräys (ei asennus)'],['profile','Распил профилей','Profiilien sahaus'],
    ['check','Проверка целостности деталей','Osien eheyden tarkistus'],['setup','Рабочее место, инструмент','Työpiste ja työkalut'],
    ['clean','Уборка','Siivous']]},
  {k:'log',ru:'Логистика',fi:'Kuljetus',cls:'NVA',c:'--c-log',reasons:[
@@ -562,8 +563,9 @@ function setCtx(o,oid){
   sh.ev.push(e);S.ord=o;S.oid=oid;touch(sh);render();
 }
 function applyOrderPick(name,oid){if(active())setCtx(name,oid);else{S.ord=name;S.oid=oid||'';save()}}
-function addCab(){var sh=active();if(!sh)return;snapshot();var cur=last(sh);sh.sh.push({t:Date.now(),o:cur.o,oid:cur.oid});touch(sh);feedback();toast(t('cab_rec',sh.sh.length),true);render()}
-function addPallet(){var sh=active();if(!sh)return;snapshot();var cur=last(sh);if(!sh.pl)sh.pl=[];sh.pl.push({t:Date.now(),o:cur.o,oid:cur.oid});touch(sh);feedback();toast(t('pal_rec',sh.pl.length),true);render()}
+var DUP_MS=10000;
+function addCab(){var sh=active();if(!sh)return;var lc=sh.sh[sh.sh.length-1];if(lc&&Date.now()-lc.t<DUP_MS){toast(t('cab_dup'));return}snapshot();var cur=last(sh);sh.sh.push({t:Date.now(),o:cur.o,oid:cur.oid});touch(sh);feedback();toast(t('cab_rec',sh.sh.length),true);render()}
+function addPallet(){var sh=active();if(!sh)return;var lp=(sh.pl||[])[(sh.pl||[]).length-1];if(lp&&Date.now()-lp.t<DUP_MS){toast(t('cab_dup'));return}snapshot();var cur=last(sh);if(!sh.pl)sh.pl=[];sh.pl.push({t:Date.now(),o:cur.o,oid:cur.oid});touch(sh);feedback();toast(t('pal_rec',sh.pl.length),true);render()}
 function npl(sh){return (sh.pl||[]).length}
 function removeCab(){var sh=active();if(!sh||!sh.sh.length)return;snapshot();sh.sh.pop();touch(sh);render()}
 function earlier(min){
@@ -744,7 +746,7 @@ function viewShiftTab(){
    +'<p class="ctxage'+(ctxAge(sh)>=CTX_STALE?' w':'')+'">'+t('ctx_since',dur(ctxAge(sh)))+'</p>'
    +'<section class="sheets"><div class="line"><span>'+t('cabs_l')+'<br><span id="ago">'+esc(agoText(sh))+'</span></span><b>'+n+'</b></div>'
    +'<div style="display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:stretch"><button class="bigbtn" data-act="cab">'+t('cab_b')+(cabSub?'<small>'+cabSub+'</small>':'')+'</button><button class="mini pal" data-act="pal">'+t('pal_b')+(t2('pal_s')?'<small>'+t2('pal_s')+'</small>':'')+'<b class="mono">'+npl(sh)+'</b></button><button class="mini" data-act="uncab" aria-label="'+t('uncab')+'"'+(n?'':' disabled')+'>−1</button></div></section>'
-   +'<div class="grid">'+STATES.map(function(s){var f=ss(s);return '<button class="sb" style="--c:var('+s.c+')" data-act="state" data-k="'+s.k+'" aria-pressed="'+(cur.s===s.k)+'"><span class="dot"></span><span class="n">'+sn(s)+'</span>'+(f?'<span class="f">'+f+'</span>':'')+'<span class="cl">'+s.cls+'</span></button>'}).join('')+'</div>'
+   +'<div class="grid">'+STATES.map(function(s){var f=ss(s);return '<button class="sb" style="--c:var('+s.c+')" data-act="state" data-k="'+s.k+'" aria-pressed="'+(cur.s===s.k)+'"><span class="dot"></span><span class="n">'+sn(s)+'</span>'+(f?'<span class="f">'+f+'</span>':'')+(s.hint?'<span class="f">'+(lg()==='ru'?s.hint[0]:s.hint[1])+'</span>':'')+'<span class="cl">'+s.cls+'</span></button>'}).join('')+'</div>'
    +'<div class="endrow">'+(navigator.wakeLock?'<button data-act="wake" aria-pressed="'+UI.wake+'">'+(UI.wake?t('wake_on'):t('wake_off'))+'</button>':'<span></span>')+'<button data-act="end">'+t('end_b')+(t2('end_s')?'<br>'+t2('end_s'):'')+'</button></div>';
 }
 function paretoHtml(par){
@@ -903,7 +905,7 @@ function renderModal(){
      +srcRow+st.reasons.map(function(r){return '<button class="rb" data-act="reason" data-k="'+st.k+'" data-r="'+r[0]+'" aria-pressed="'+(curR===r[0])+'">'+rlab(r)+sm(rsub(r))+'</button>'}).join('')
      +(m.other?'<div class="noterow"><input id="in-note" placeholder="'+esc(t('note_ph'))+'" maxlength="80" autocomplete="off"><button class="bigbtn" data-act="note" data-k="'+st.k+'">'+t('save_b')+'</button></div>'
        :'<button class="rb" data-act="other" data-k="'+st.k+'">'+t('other')+sm(lg()==='ru'?TR.other_s[0]:'')+'</button>')
-     +'<button class="rb ghost" data-act="reason" data-k="'+st.k+'" data-r="">'+t('none')+sm(lg()==='ru'?TR.none_s[0]:'')+'</button>';
+     +(st.k==='prep'?'':'<button class="rb ghost" data-act="reason" data-k="'+st.k+'" data-r="">'+t('none')+sm(lg()==='ru'?TR.none_s[0]:'')+'</button>');
   }else if(m.type==='noteedit'){
     var cn=active()?last(active()):null;
     inner='<h3>'+t('note_h')+'</h3><div class="noterow"><input id="in-note3" value="'+esc(cn&&cn.n||'')+'" placeholder="'+esc(t('note_ph'))+'" maxlength="120" autocomplete="off"><button class="bigbtn" data-act="notesave">'+t('save_b')+'</button></div>'
