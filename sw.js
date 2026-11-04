@@ -1,10 +1,13 @@
 // Network first for the app shell, cache fallback so the app opens without signal on the shop floor.
 // Database calls (supabase.co) are never cached.
-const C='kok-v2';
-self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./','index.html','manifest.webmanifest','icon.svg','icon-192.png'])).then(()=>self.skipWaiting()))});
+const C='kok-v3';
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(['./','index.html','manifest.webmanifest','icon.svg','icon-192.png'].map(x=>new Request(x,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{
   const u=new URL(e.request.url);
   if(e.request.method!=='GET'||u.origin!==location.origin)return;
-  e.respondWith(fetch(e.request).then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('index.html'))));
+  /* страницу и сам sw всегда сверяем с сервером (no-cache), иначе браузер до 10 минут отдаёт старую версию из своего кэша */
+  const fresh=e.request.mode==='navigate'||/(\/|index\.html|sw\.js|config\.js)$/.test(u.pathname);
+  const req=fresh?fetch(u.href,{cache:'no-cache',credentials:'same-origin'}):fetch(e.request);
+  e.respondWith(req.then(r=>{const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('index.html'))));
 });
