@@ -205,6 +205,18 @@ h3 span{font-size:14px;font-weight:400;color:var(--ink2);margin-left:6px}
 .qrow:has(> :only-child){grid-template-columns:1fr}
 .qrow input{font:inherit;font-size:16px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);min-width:0}
 .mini.more{width:100%;margin-top:10px;padding:10px}
+.wkbar{position:relative;height:14px;border-radius:7px;background:var(--surface2);margin-top:10px;overflow:visible}
+.wkbar i{display:block;height:100%;border-radius:7px;background:var(--c-work)}
+.wkbar b{position:absolute;top:-4px;width:2px;height:22px;background:var(--ink);transform:translateX(-1px)}
+.wkdays{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;align-items:end}
+.wkdays div{display:flex;flex-direction:column;align-items:center;gap:3px;min-height:72px;justify-content:flex-end}
+.wkdays i{display:block;width:70%;max-width:40px;background:var(--c-work);border-radius:4px 4px 0 0}
+.wkdays small{font-size:12px;color:var(--ink2)}.wkdays span{font-size:12px}
+.chip.idea{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fbprev{display:flex;align-items:center;gap:12px;margin-top:10px}.fbprev img{width:96px;height:96px;object-fit:cover;border-radius:10px}
+.fbmine{list-style:none;margin:0;padding:0;display:grid;gap:10px}.fbmine li{display:grid;gap:4px;font-size:14px}.fbmine li .chip{justify-self:start}.fbmine small{color:var(--ink2)}
+.fbitem{padding:12px 0;border-bottom:1px solid var(--line)}.fbitem:last-child{border-bottom:0}
+.fbimg{display:block;max-width:100%;max-height:220px;border-radius:10px;cursor:zoom-in}
 </style>
 </head>
 <body>
@@ -325,6 +337,25 @@ var TR={
  nomat:['без материала','ei materiaalia'],
  del_b:['Удалить смену','Poista vuoro'],
  hist_h:['Смены','Vuorot'],
+ wk_h:['Неделя цеха','Viikon tilanne'],wk_packed:['Упаковано корпусов','Pakattu kaappeja'],wk_built:['Собрано корпусов','Koottu kaappeja'],
+ wk_goal:[function(g,e){return 'Цель недели '+g+' · к концу сегодня '+e},function(g,e){return 'Viikon tavoite '+g+' · tänään mennessä '+e}],
+ wk_none:['На этой неделе корпусов пока нет.','Tällä viikolla ei vielä kaappeja.'],
+ my_h:['Моя неделя','Oma viikko'],my_note:['Считается по твоим сменам этой недели (пн–вс).','Lasketaan omista vuoroistasi tällä viikolla (ma–su).'],
+ my_shifts:[function(n){return n+' смен'},function(n){return n+' vuoroa'}],my_vs:[function(d){return (d>=0?'+':'')+d+' пп к прошлой неделе'},function(d){return (d>=0?'+':'')+d+' %-yks. edelliseen viikkoon'}],
+ my_top:['Куда ушло время, кроме основной работы','Mihin aika meni varsinaisen työn lisäksi'],my_none:['На этой неделе твоих смен пока нет.','Tällä viikolla sinulla ei vielä ole vuoroja.'],
+ fb_chip:['Идея','Idea'],fb_h:['Идея, проблема или вопрос','Idea, ongelma tai kysymys'],
+ fb_k_idea:['Идея','Ehdotus'],fb_k_prob:['Проблема','Ongelma'],fb_k_q:['Вопрос','Kysymys'],
+ fb_ph:['Что заметил? Что можно сделать лучше?','Mitä huomasit? Mitä voisi tehdä paremmin?'],
+ fb_photo:['＋ Фото','＋ Kuva'],fb_photo_rm:['Убрать фото','Poista kuva'],fb_send:['Отправить','Lähetä'],
+ fb_sent:['Отправлено. Спасибо!','Lähetetty. Kiitos!'],fb_fail:['Не отправилось. Текст сохранён, попробуй ещё раз.','Lähetys ei onnistunut. Teksti on tallessa, yritä uudelleen.'],
+ fb_empty:['Напиши хотя бы пару слов','Kirjoita ainakin pari sanaa'],fb_local:['Работает только со входом в приложение.','Toimii vain sovellukseen kirjautuneena.'],
+ fb_mine:['Мои отправленные','Omat lähetetyt'],fb_mine_none:['Пока ничего не отправлено.','Ei vielä lähetettyjä.'],
+ fb_st_uusi:['Новое','Uusi'],fb_st_kas:['В работе','Käsittelyssä'],fb_st_tehty:['Сделано','Tehty'],fb_st_ei:['Не будем делать','Ei toteuteta'],
+ fb_admin_h:['Идеи и обратная связь','Ideat ja palaute'],fb_f_new:['Новые и в работе','Uudet ja käsittelyssä'],fb_f_all:['Все','Kaikki'],
+ fb_reply_ph:['Ответ автору (виден ему)','Vastaus lähettäjälle (näkyy hänelle)'],fb_save:['Сохранить','Tallenna'],fb_saved:['Сохранено','Tallennettu'],
+ fb_load_fail:['Не удалось загрузить. Возможно, не выполнен SQL feedback.','Lataus epäonnistui. Ehkä feedback-SQL:ää ei ole ajettu.'],fb_reply_l:['Ответ:','Vastaus:'],
+ fb_back:['← Назад','← Takaisin'],
+ close:['Закрыть','Sulje'],
  h_q_ph:['Дата (дд.мм.гггг), инициалы или участок','Päivä (pp.kk.vvvv), nimikirjaimet tai työpiste'],
  h_new:['Сначала новые','Uusin ensin'],h_old:['Сначала старые','Vanhin ensin'],
  show_all:[function(n){return 'Показать все ('+n+')'},function(n){return 'Näytä kaikki ('+n+')'}],show_less:['Свернуть','Näytä vähemmän'],
@@ -1291,8 +1322,9 @@ function header(){
   var stBtn=a?'<button class="chip btn" data-act="stsw" aria-label="'+esc(t('st_sw'))+'">'+esc(stShort(st))+' ⇄</button>':'';
   var acc='';
   if(UI.fb){acc=UI.user?'<button class="chip btn" data-act="logask" aria-label="'+esc(UI.user.name||UI.user.ini||UI.user.email)+'">'+esc((UI.user.admin?'ADM':(UI.user.ini||'?')).slice(0,3))+'</button>':'<button class="chip btn err" data-act="login">'+t('login_b')+'</button>'}
+  var idea=fbReady()?'<button class="chip btn idea" data-act="fbopen">'+t('fb_chip')+' ＋</button>':'';
   var sy=(UI.fb&&!UI.user)?'':'<span id="sync" class="chip'+(UI.sync==='ok'?' ok':(UI.sync==='err'||UI.sync==='auth')?' err':'')+'">'+syncText()+'</span>';
-  return '<div class="top"><div><div class="brand">'+t('brand')+'</div><div class="sub">'+(st?t('st_sub',stShort(st)):t('st_pick'))+'</div></div><div class="hd-right"><span class="seg" role="group" aria-label="Kieli / Язык">'+seg+'</span>'+stBtn+acc+sy+'</div></div>';
+  return '<div class="top"><div><div class="brand">'+t('brand')+'</div><div class="sub">'+(st?t('st_sub',stShort(st)):t('st_pick'))+'</div></div><div class="hd-right"><span class="seg" role="group" aria-label="Kieli / Язык">'+seg+'</span>'+stBtn+idea+acc+sy+'</div></div>';
 }
 function tabsBar(){
   var tb=[['shift','tab_shift'],['ord','tab_ord'],['sum','tab_sum'],['trend','tab_trend'],['hist','tab_hist']];
@@ -1339,7 +1371,7 @@ function agoText(sh){
   if(n>1){var ts=sh.sh.map(function(x){return x.t}).sort(function(a,b){return a-b});s+=t('ago_avg',dur(netAvg(segs(sh,now),ts)))}return s;
 }
 function viewShiftTab(){
-  var sh=active();if(!sh)return startCard();
+  var sh=active();if(!sh)return startCard()+shopWeekHtml()+myWeekHtml();
   useSt(shSt(sh));
   var cur=last(sh),st=SMAP[cur.s],s2=ss(st);
   var sst=stateStart(sh);
@@ -1397,12 +1429,14 @@ function fSt(){var f=S.stf;return(SETS[f]||f==='all')?f:(S.st||'all')}
 function stShifts(){var f=fSt();return realShifts().filter(function(s){return f==='all'||shSt(s)===f})}
 function opKey(o){return String(o||'').trim().toUpperCase()}
 function opList(){var seen={},out=[];stShifts().forEach(function(s){var k=opKey(s.op);if(k&&k!=='—'&&!seen[k]){seen[k]=1;out.push(k)}});return out.sort()}
-function opFilter(){var f=S.opf;return(f&&opList().indexOf(f)>=0)?f:''}
+/* по людям смотрит только админ; сотрудник видит только себя, остальное по участкам */
+function seesPeople(){return !UI.fb||!!UI.ed}
+function opFilter(){if(!seesPeople())return '';var f=S.opf;return(f&&opList().indexOf(f)>=0)?f:''}
 function fShifts(){var l=stShifts(),f=opFilter();return f?l.filter(function(s){return opKey(s.op)===f}):l}
 function fltHtml(){
   var ops=opList(),f=fSt();
   var row1='<div class="chips" style="margin-top:0">'+[['all',t('f_all')]].concat(STN.map(function(k){return [k,stShort(k)]})).map(function(x){return '<button data-act="stf" data-s="'+x[0]+'" aria-pressed="'+(f===x[0])+'">'+esc(x[1])+'</button>'}).join('')+'</div>';
-  var row2=ops.length?'<h4 style="margin:14px 0 8px">'+t('flt_h')+'</h4><div class="chips" style="margin-top:0">'+[''].concat(ops).map(function(o){return '<button data-act="opf" data-o="'+esc(o)+'" aria-pressed="'+(opFilter()===o)+'">'+(o?esc(o):t('flt_all'))+'</button>'}).join('')+'</div>':'';
+  var row2=(ops.length&&seesPeople())?'<h4 style="margin:14px 0 8px">'+t('flt_h')+'</h4><div class="chips" style="margin-top:0">'+[''].concat(ops).map(function(o){return '<button data-act="opf" data-o="'+esc(o)+'" aria-pressed="'+(opFilter()===o)+'">'+(o?esc(o):t('flt_all'))+'</button>'}).join('')+'</div>':'';
   return '<section class="card"><h4>'+t('st_h')+'</h4>'+row1+row2+'</section>';
 }
 function unitsOf(st,n){return st==='cnc'?t('n_sheets',n):st==='reu'?t('n_trl',n):t('n_cabs',n)}
@@ -1419,12 +1453,13 @@ function pad2(n){return(n<10?'0':'')+n}
 function shKey(sh){var d=new Date(sh.start),dd=d.getDate(),mm=d.getMonth()+1,yy=d.getFullYear();
   return [pad2(dd)+'.'+pad2(mm)+'.'+yy,dd+'.'+mm+'.'+yy,yy+'-'+pad2(mm)+'-'+pad2(dd),sh.op||'',stShort(shSt(sh))].join(' ').toLowerCase()}
 function qMatch(key,q){q=String(q||'').trim().toLowerCase();if(!q)return true;return q.split(/\s+/).every(function(w){return key.indexOf(w)>=0})}
+function histOwn(l){if(seesPeople())return l;var me=myIni();return l.filter(function(s){return opKey(s.op)===me})}
 function histRows(){
-  var now=Date.now(),list=fShifts().slice(),q=UI.hq||'';
+  var now=Date.now(),list=histOwn(fShifts()).slice(),q=UI.hq||'';
   if(S.hsort==='old')list.reverse();
   if(q)list=list.filter(function(sh){return qMatch(shKey(sh),q)});
   var total=list.length,show=(q||UI.hAll)?list:list.slice(0,LIST_N);
-  var smp=(!q&&!fShifts().length)?getSample(fSt()==='all'?'cnc':fSt()):null;
+  var smp=(!q&&!histOwn(fShifts()).length)?getSample(fSt()==='all'?'cnc':fSt()):null;
   var rows=(smp?[smp]:show).map(function(sh){
     var m=summary(sh,now);
     return '<button class="row" data-act="open" data-id="'+sh.id+'"'+(sh.sample?' data-st="'+shSt(sh)+'"':'')+'><span class="a">'+esc(dlabel(sh.start))+(sh.sample?t('sample_tag'):sh.hist?t('hist_tag'):'')+'</span><span class="b">'+hm(sh.start)+'–'+(sh.end?hm(sh.end):t('chip_live'))+'</span><span class="c">'+esc(stShort(shSt(sh)))+' · '+esc(opName(sh))+' · '+nUnits(sh,m.n)+(npl(sh)?' · '+t('n_pal',npl(sh)):'')+'</span><span class="d">VA '+pct(m.cls.VA,m.tracked)+'</span></button>';
@@ -1434,14 +1469,14 @@ function histRows(){
   return rows+foot;
 }
 function viewHist(){
-  var list=fShifts();
+  var list=histOwn(fShifts());
   var can=DL&&list.length,hasC=list.some(function(s){return shSt(s)==='cnc'});
   var mig=UI.ed?'<section class="card"><h4>'+t('mig_h')+'</h4><p class="muted" style="margin:0 0 10px">'+t('mig_p')+'</p><input type="file" id="mig-file" accept=".json,application/json" hidden><button class="bigbtn sm" data-act="migpick">'+t('mig_b')+'</button></section>':'';
   var tools='<div class="qrow"><input id="h-q" type="search" inputmode="numeric" placeholder="'+esc(t('h_q_ph'))+'" value="'+esc(UI.hq||'')+'" autocomplete="off"><button class="mini" data-act="hsort" style="width:auto;padding:8px 12px">'+(S.hsort==='old'?t('h_old'):t('h_new'))+' ⇅</button></div>';
   return fltHtml()+'<section class="card"><h4>'+bi('hist_h')+'</h4>'+tools+'<div class="list" id="h-list">'+histRows()+'</div></section>'
    +'<section class="card"><h4>'+t('export_h')+'</h4><div class="btns"><button data-act="exp" data-k="ev"'+(can?'':' disabled')+'>'+t('csv_ev')+'</button><button data-act="exp" data-k="cnt"'+(can?'':' disabled')+'>'+t('csv_cnt')+'</button>'
    +(hasC?'<button data-act="exp" data-k="vsm" style="grid-column:1/-1"'+(can?'':' disabled')+'>'+t('csv_vsm')+'</button>':'')+'</div>'
-   +'<p class="muted" style="margin:10px 0 0">'+(DB?t('store_cloud'):t('store_local'))+t('csv_note')+'</p></section>'+peopleCard()+mig;
+   +'<p class="muted" style="margin:10px 0 0">'+(DB?t('store_cloud'):t('store_local'))+t('csv_note')+'</p></section>'+(UI.ed&&UI.fb?'<section class="card"><button class="toolhd" data-act="fbadmin"><span><b>'+t('fb_admin_h')+'</b><small>'+(UI.fbAll?t('fb_st_uusi')+': '+fbNewCount():'')+'</small></span><span class="lnk">→</span></button></section>':'')+peopleCard()+mig;
 }
 function summaryAll(list,now){
   var cls={VA:0,NVA:0,Hukka:0},byR={},bySrc={},days=[];
@@ -1526,11 +1561,115 @@ function ordStatsHtml(oid){
    +'<div class="kv" style="margin-top:10px">'+kv+'</div>'
    +(matRows?'<div class="par" style="margin-top:10px">'+matRows+'</div>':'');
 }
+/* ---------- неделя цеха и своя неделя ---------- */
+function weekInfo(){var now=Date.now(),w0=weekStart(now),d=new Date(w0);d.setDate(d.getDate()-7);return{now:now,w0:w0,p0:d.getTime()}}
+function shopWeekHtml(){
+  var wi=weekInfo(),list=realShifts().filter(function(s){return s.start>=wi.w0});
+  var built=0,packed=0,byDay=[0,0,0,0,0];
+  list.forEach(function(sh){var st=shSt(sh);if(st!=='kok'&&st!=='pak')return;var n=(sh.sh||[]).length;if(st==='kok')built+=n;else packed+=n});
+  var main=packed>0?'pak':'kok';
+  list.forEach(function(sh){if(shSt(sh)!==main)return;(sh.sh||[]).forEach(function(x){var di=(new Date(x.t).getDay()+6)%7;if(di<5)byDay[di]++})});
+  var goal=Math.max(1,Math.round(S.cfg.goal||60)),di=Math.min(5,(new Date(wi.now).getDay()+6)%7+1),exp=Math.round(goal*di/5);
+  var val=main==='pak'?packed:built,pc=Math.min(100,val/goal*100),pe=Math.min(100,exp/goal*100);
+  if(!built&&!packed)return '<section class="card"><h4>'+bi('wk_h')+'</h4><p class="muted" style="margin:0">'+t('wk_none')+'</p></section>';
+  var mx=Math.max.apply(null,byDay.concat([1])),dn=lg()==='ru'?['Пн','Вт','Ср','Чт','Пт']:['ma','ti','ke','to','pe'];
+  return '<section class="card"><h4>'+bi('wk_h')+'</h4>'
+   +'<div class="rowh"><span><b class="mono" style="font-size:30px">'+val+'</b> <span class="muted">/ '+goal+' · '+t(main==='pak'?'wk_packed':'wk_built')+'</span></span>'+(main==='pak'?'<span class="muted">'+t('wk_built')+': <b class="mono">'+built+'</b></span>':'')+'</div>'
+   +'<div class="wkbar"><i style="width:'+pc.toFixed(1)+'%"></i><b style="left:'+pe.toFixed(1)+'%"></b></div>'
+   +'<p class="muted" style="margin:6px 0 10px;font-size:13px">'+t('wk_goal',goal,exp)+'</p>'
+   +'<div class="wkdays">'+byDay.map(function(n,i){return '<div><span class="mono">'+(n||'')+'</span><i style="height:'+(n?Math.max(4,n/mx*44):2)+'px"></i><small>'+dn[i]+'</small></div>'}).join('')+'</div></section>';
+}
+function myIni(){return opKey((UI.user&&!UI.user.admin&&UI.user.ini)||S.op||'')}
+function myWeekHtml(){
+  var me=myIni();if(!me)return '';
+  var wi=weekInfo(),mine=realShifts().filter(function(s){return opKey(s.op)===me});
+  var cur=mine.filter(function(s){return s.start>=wi.w0}),prev=mine.filter(function(s){return s.start>=wi.p0&&s.start<wi.w0});
+  if(!cur.length)return '<section class="card"><h4>'+bi('my_h')+' · '+esc(me)+'</h4><p class="muted" style="margin:0">'+t('my_none')+'</p></section>';
+  var m=summaryAll(cur,wi.now),pm=prev.length?summaryAll(prev,wi.now):null;
+  var va=m.tracked?Math.round(m.cls.VA/m.tracked*100):0,pva=pm&&pm.tracked?Math.round(pm.cls.VA/pm.tracked*100):null;
+  var units={};cur.forEach(function(sh){var st=shSt(sh);units[st]=(units[st]||0)+(sh.sh||[]).length});
+  var ut=Object.keys(units).filter(function(k){return units[k]}).map(function(k){return esc(unitsOf(k,units[k]))}).join(' · ');
+  var top=m.par.slice(0,3);
+  return '<section class="card"><h4>'+bi('my_h')+' · '+esc(me)+'</h4>'
+   +'<div class="kpis"><div class="kpi"><span class="kl">VA</span><b>'+va+'%</b><small>'+(pva!=null?esc(t('my_vs',va-pva)):'&nbsp;')+'</small></div>'
+   +'<div class="kpi"><span class="kl">'+esc(t('my_shifts',cur.length))+'</span><b>'+(Math.round(m.tracked/360000)/10).toString().replace('.',lg()==='ru'?',':',')+' h</b><small>&nbsp;</small></div>'
+   +'<div class="kpi"><span class="kl">'+(lg()==='ru'?'Сделано':'Tehty')+'</span><b style="font-size:18px">'+(ut||'—')+'</b><small>&nbsp;</small></div></div>'
+   +(top.length?'<p class="q" style="margin:12px 0 6px">'+t('my_top')+'</p><ul class="nlist">'+top.map(function(x){return '<li><span class="tm">'+dur(x.d)+'</span><span>'+esc(rname(x.s,x.r,x.st))+'</span><small>'+esc(sn(smOf(x.st,x.s)))+'</small></li>'}).join('')+'</ul>':'')
+   +'<p class="muted" style="margin:10px 0 0;font-size:12px">'+t('my_note')+'</p></section>';
+}
+
+/* ---------- идеи и обратная связь (таблица feedback + хранилище фото feedback) ---------- */
+var FB_K=[['idea','fb_k_idea'],['prob','fb_k_prob'],['q','fb_k_q']];
+var FB_S=[['uusi','fb_st_uusi'],['kas','fb_st_kas'],['tehty','fb_st_tehty'],['ei','fb_st_ei']];
+function fbStName(s){var x=FB_S.filter(function(a){return a[0]===s})[0];return x?t(x[1]):s}
+function fbKName(k){var x=FB_K.filter(function(a){return a[0]===k})[0];return x?t(x[1]):k}
+function fbReady(){return !!(UI.fb&&UI.user&&SESS&&SESS.at)}
+async function fbList(){var r=await authFetch('/rest/v1/feedback?select=*&order=created_at.desc&limit=200');if(!r.ok)throw sbErr(r);return r.json()}
+function shrinkPhoto(file){return new Promise(function(res,rej){
+  var u=URL.createObjectURL(file),im=new Image();
+  im.onload=function(){var k=Math.min(1,1600/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*k);c.height=Math.round(im.height*k);
+    c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(function(b){b?res(b):rej(new Error('blob'))},'image/jpeg',0.8)};
+  im.onerror=function(){URL.revokeObjectURL(u);rej(new Error('img'))};im.src=u})}
+async function fbSend(){
+  var d=UI.fbDraft||{},txt=($('#fb-txt')||{}).value||'';d.txt=txt;
+  if(txt.trim().length<2){toast(t('fb_empty'));return}
+  if(UI.fbBusy)return;UI.fbBusy=true;renderModal();
+  try{
+    var path=null;
+    if(d.photo){path=ymd(Date.now())+'/'+Date.now().toString(36)+Math.random().toString(36).slice(2,7)+'.jpg';
+      var up=await authFetch('/storage/v1/object/feedback/'+path,{method:'POST',headers:{'Content-Type':'image/jpeg'},body:d.photo});if(!up.ok)throw sbErr(up)}
+    var a=active(),row={ini:myIni()||null,st:a?shSt(a):(S.st||null),kind:d.kind||'idea',body:txt.trim(),photo:path};
+    var r=await authFetch('/rest/v1/feedback',{method:'POST',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(row)});if(!r.ok)throw sbErr(r);
+    if(d.url)URL.revokeObjectURL(d.url);UI.fbDraft={kind:'idea'};UI.fbBusy=false;UI.fbMine=null;toast(t('fb_sent'));fbLoadMine();renderModal();
+  }catch(e){UI.fbBusy=false;toast(t('fb_fail'));renderModal()}
+}
+async function fbLoadMine(){try{UI.fbMine=await fbList()}catch(e){UI.fbMine=[]}if(UI.modal&&UI.modal.type==='fb')renderModal()}
+function fbModalHtml(){
+  if(!fbReady())return '<h3>'+t('fb_h')+'</h3><p class="q">'+t('fb_local')+'</p><div class="two" style="grid-template-columns:1fr"><button data-act="close">'+t('cancel')+'</button></div>';
+  var d=UI.fbDraft||(UI.fbDraft={kind:'idea'});
+  var kinds='<div class="chips" style="margin-top:4px">'+FB_K.map(function(k){return '<button data-act="fbk" data-k="'+k[0]+'" aria-pressed="'+(d.kind===k[0])+'">'+t(k[1])+'</button>'}).join('')+'</div>';
+  var ph=d.url?'<div class="fbprev"><img src="'+d.url+'" alt=""><button class="lnk" data-act="fbrm">'+t('fb_photo_rm')+'</button></div>':'<button class="mini" data-act="fbpick" style="width:auto;padding:10px 14px;margin-top:10px">'+t('fb_photo')+'</button>';
+  var mine=UI.fbMine==null?'':(UI.fbMine.length?'<ul class="fbmine">'+UI.fbMine.slice(0,10).map(function(x){return '<li><span class="chip'+(x.status==='tehty'?' ok':'')+'">'+esc(fbStName(x.status))+'</span><span>'+esc(x.body)+'</span>'+(x.reply?'<small>'+t('fb_reply_l')+' '+esc(x.reply)+'</small>':'')+'</li>'}).join('')+'</ul>':'<p class="muted" style="margin:4px 0 0">'+t('fb_mine_none')+'</p>');
+  return '<h3>'+t('fb_h')+'</h3>'+kinds
+   +'<textarea id="fb-txt" rows="4" maxlength="1000" placeholder="'+esc(t('fb_ph'))+'" style="width:100%;font:inherit;font-size:16px;padding:12px;border-radius:10px;border:1px solid var(--line);background:var(--surface);color:var(--ink);margin-top:10px">'+esc(d.txt||'')+'</textarea>'
+   +'<input type="file" id="fb-file" accept="image/*" capture="environment" hidden>'+ph
+   +'<div class="two"><button data-act="close">'+t('cancel')+'</button><button class="ok" data-act="fbsend"'+(UI.fbBusy?' disabled':'')+'>'+(UI.fbBusy?'…':t('fb_send'))+'</button></div>'
+   +'<h4 style="margin:18px 0 6px">'+t('fb_mine')+'</h4>'+mine;
+}
+/* админ: страница со всеми идеями */
+async function fbAdminLoad(){UI.fbAll=null;UI.fbErr=false;try{UI.fbAll=await fbList()}catch(e){UI.fbAll=[];UI.fbErr=true}if(UI.tab==='fb'&&!UI.modal)render();fbLoadImgs()}
+async function fbLoadImgs(){
+  UI.fbImg=UI.fbImg||{};
+  (UI.fbAll||[]).forEach(async function(x){if(!x.photo||UI.fbImg[x.photo])return;UI.fbImg[x.photo]='…';
+    try{var r=await authFetch('/storage/v1/object/authenticated/feedback/'+x.photo);if(!r.ok)throw 0;UI.fbImg[x.photo]=URL.createObjectURL(await r.blob());
+      var el=document.querySelector('img[data-ph="'+x.photo+'"]');if(el){el.src=UI.fbImg[x.photo];el.hidden=false}}catch(e){UI.fbImg[x.photo]=''}});
+}
+function fbNewCount(){return (UI.fbAll||[]).filter(function(x){return x.status==='uusi'}).length}
+function viewFb(){
+  if(!UI.ed)return '<section class="card"><p class="muted" style="margin:0">'+t('ro_note')+'</p></section>';
+  if(UI.fbAll==null){if(!UI.fbLoading){UI.fbLoading=true;fbAdminLoad().then(function(){UI.fbLoading=false})}return '<section class="card"><h4>'+bi('fb_admin_h')+'</h4><p class="muted" style="margin:0">…</p></section>'}
+  var all=UI.fbAll,tch=UI.fbTouched||{},list=UI.fbF==='all'?all:all.filter(function(x){return x.status==='uusi'||x.status==='kas'||tch[x.id]});
+  var flt='<div class="chips" style="margin-top:0">'+[['open','fb_f_new'],['all','fb_f_all']].map(function(f){return '<button data-act="fbf" data-f="'+f[0]+'" aria-pressed="'+((UI.fbF||'open')===f[0])+'">'+t(f[1])+'</button>'}).join('')+'</div>';
+  var rows=list.map(function(x){
+    var dt=new Date(x.created_at),img=x.photo?'<img class="fbimg" data-ph="'+esc(x.photo)+'" data-act="fbzoom" alt=""'+(UI.fbImg&&UI.fbImg[x.photo]&&UI.fbImg[x.photo]!=='…'?' src="'+UI.fbImg[x.photo]+'"':' hidden')+'>':'';
+    return '<div class="fbitem"><div class="muted" style="font-size:13px">'+esc(dlabel(dt.getTime())+' '+hm(dt.getTime()))+' · '+esc(x.ini||'—')+(x.st&&SETS[x.st]?' · '+esc(stShort(x.st)):'')+' · '+esc(fbKName(x.kind))+'</div>'
+     +'<p style="margin:6px 0 8px;white-space:pre-wrap">'+esc(x.body)+'</p>'+img
+     +'<div class="chips" style="margin-top:8px">'+FB_S.map(function(s){return '<button data-act="fbst" data-id="'+x.id+'" data-s="'+s[0]+'" aria-pressed="'+(x.status===s[0])+'">'+t(s[1])+'</button>'}).join('')+'</div>'
+     +'<div class="noterow"><input id="fbr-'+x.id+'" value="'+esc(x.reply||'')+'" placeholder="'+esc(t('fb_reply_ph'))+'" maxlength="300" autocomplete="off"><button class="mini" data-act="fbsave" data-id="'+x.id+'" style="width:auto;padding:0 14px">'+t('fb_save')+'</button></div></div>';
+  }).join('');
+  return '<section class="card"><div class="rowh"><h4 style="margin:0">'+bi('fb_admin_h')+'</h4><button class="lnk" data-act="tab" data-t="hist">'+t('fb_back')+'</button></div><div style="height:10px"></div>'+flt+'</section>'
+   +(UI.fbErr?'<section class="card"><p class="muted" style="margin:0">'+t('fb_load_fail')+'</p></section>':'')
+   +(rows?'<section class="card">'+rows+'</section>':'<section class="card"><p class="muted" style="margin:0">'+t('fb_mine_none')+'</p></section>');
+}
+async function fbPatch(id,patch){
+  try{var r=await authFetch('/rest/v1/feedback?id=eq.'+encodeURIComponent(id),{method:'PATCH',headers:{'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify(Object.assign({updated_at:new Date().toISOString()},patch))});if(!r.ok)throw sbErr(r);
+    (UI.fbAll||[]).forEach(function(x){if(x.id===id)Object.assign(x,patch)});toast(t('fb_saved'));render()}catch(e){toast(t('fb_fail'))}
+}
 function render(){
   document.documentElement.lang=lg();
   var vs=UI.tab==='sum'?viewShift():null;
   useSt(UI.tab==='shift'?curSt():vs?shSt(vs):curSt());
-  var body=UI.tab==='shift'?viewShiftTab():UI.tab==='ord'?viewOrders():UI.tab==='sum'?viewSum():UI.tab==='trend'?viewTrend():viewHist();
+  var body=UI.tab==='shift'?viewShiftTab():UI.tab==='ord'?viewOrders():UI.tab==='sum'?viewSum():UI.tab==='trend'?(shopWeekHtml()+myWeekHtml()+viewTrend()):UI.tab==='fb'?viewFb():viewHist();
   $('#app').innerHTML=header()+'<main>'+body+'</main>'+tabsBar();
   renderModal();
 }
@@ -1601,6 +1740,10 @@ function renderModal(){
     var cs1=curSt();
     inner='<h3>'+t('st_sw_q')+'</h3><p class="q">'+t('st_sw_pick')+'</p>'+STN.filter(function(k){return k!==cs1}).map(function(k){return '<button class="rb" data-act="stsw-do" data-id="'+k+'">'+esc(stShort(k))+'<small>'+esc(stSub(k))+'</small></button>'}).join('')
      +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
+  }else if(m.type==='fb'){
+    inner=fbModalHtml();
+  }else if(m.type==='img'){
+    inner='<img src="'+m.src+'" alt="" style="width:100%;border-radius:10px;display:block"><div class="two" style="grid-template-columns:1fr"><button data-act="close">'+t('close')+'</button></div>';
   }else if(m.type==='baseq'){
     var bq=UI.draft&&UI.draft.mats[m.i];
     inner='<h3>'+t('base_h')+'</h3><p class="q">'+esc(bq?bq.m:'')+'</p>'
@@ -1726,6 +1869,16 @@ document.addEventListener('click',function(e){
     case 'exp':exportCsv(b.dataset.k);break;
     case 'undo':undo();break;
     case 'stf':S.stf=b.dataset.s;save();render();break;
+    case 'fbopen':UI.modal={type:'fb'};if(fbReady())fbLoadMine();renderModal();break;
+    case 'fbk':var fbt=$('#fb-txt');UI.fbDraft=UI.fbDraft||{};if(fbt)UI.fbDraft.txt=fbt.value;UI.fbDraft.kind=b.dataset.k;renderModal();break;
+    case 'fbpick':var fbt2=$('#fb-txt');if(fbt2)(UI.fbDraft=UI.fbDraft||{}).txt=fbt2.value;var ff=$('#fb-file');if(ff)ff.click();break;
+    case 'fbrm':var fbt3=$('#fb-txt');var dd=UI.fbDraft||{};if(fbt3)dd.txt=fbt3.value;if(dd.url)URL.revokeObjectURL(dd.url);dd.url=null;dd.photo=null;renderModal();break;
+    case 'fbsend':fbSend();break;
+    case 'fbadmin':UI.tab='fb';UI.fbAll=null;render();window.scrollTo(0,0);break;
+    case 'fbf':UI.fbF=b.dataset.f;UI.fbTouched={};render();break;
+    case 'fbst':var fr0=$('#fbr-'+b.dataset.id);(UI.fbTouched=UI.fbTouched||{})[b.dataset.id]=1;fbPatch(b.dataset.id,{status:b.dataset.s,reply:fr0?fr0.value.trim():''});break;
+    case 'fbsave':var fr=$('#fbr-'+b.dataset.id);fbPatch(b.dataset.id,{reply:fr?fr.value.trim():''});break;
+    case 'fbzoom':if(b.src){UI.modal={type:'img',src:b.src};renderModal()}break;
     case 'hall':UI.hAll=!UI.hAll;render();break;
     case 'hsort':S.hsort=S.hsort==='old'?'new':'old';save();render();break;
     case 'oall':UI.oAll=!UI.oAll;render();break;
@@ -1784,10 +1937,12 @@ document.addEventListener('click',function(e){
   }
 });
 document.addEventListener('input',function(e){
+  if(e.target.id==='fb-txt'){(UI.fbDraft=UI.fbDraft||{kind:'idea'}).txt=e.target.value;return}
   if(e.target.id==='h-q'){UI.hq=e.target.value;var hl=$('#h-list');if(hl)hl.innerHTML=histRows()}
   else if(e.target.id==='o-q'){UI.oq=e.target.value;var ol=$('#o-list');if(ol)ol.innerHTML=ordLists()}
 });
 document.addEventListener('change',function(e){
+  if(e.target.id==='fb-file'){var f0=e.target.files&&e.target.files[0];if(!f0)return;shrinkPhoto(f0).then(function(bl){var d=UI.fbDraft=UI.fbDraft||{kind:'idea'};if(d.url)URL.revokeObjectURL(d.url);d.photo=bl;d.url=URL.createObjectURL(bl);renderModal()}).catch(function(){toast(t('fb_fail'))});return}
   var el=e.target;
   if(el.id==='st-op'){S.op=(el.value||'').trim();save()}
   else if(el.dataset&&el.dataset.cfg&&UI.ed){setCfg(el.dataset.cfg,el.value)}
