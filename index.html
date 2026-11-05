@@ -268,7 +268,8 @@ var TR={
  csv_vsm:['CSV: для vsmdata (лист «Данные»)','CSV: vsmdata-taulukkoon («Data»-välilehti)'],
  ord_h:['Заказы','Tilaukset'],
  ord_new:['+ Новый заказ','+ Uusi tilaus'],
- ord_name_l:['Название заказа','Tilauksen nimi'],
+ ord_name_l:['Клиент / описание (видит только админ)','Asiakas / kuvaus (näkyy vain ylläpitäjälle)'],
+ ord_no_l:['Номер заказа','Tilausnumero'],ord_no_ph:['например из Odoo','esim. Odoosta'],
  ord_cabs_l:['Количество корпусов','Kaappien määrä'],
  ord_mats_l:['Материалы (строка: материал = листов)','Materiaalit (rivi: materiaali = levyjä)'],
  ord_save:['Сохранить заказ','Tallenna tilaus'],
@@ -491,7 +492,7 @@ var TR={
  csv_cnt:['CSV: листы и корпуса','CSV: levyt ja kaapit'],
  ord_kok_percab:['сборка на корпус (всего)','kokoonpano / kaappi (kaikki)'],
  ord_kok_va_percab:['чистая сборка (VA) на корпус','nettokokoaminen (VA) / kaappi'],
- ord_cnc_row:['ЧПУ','CNC'],ord_kok_row:['Сборка','Kokoonpano'],
+ ord_cnc_row:['ЧПУ','CNC'],ord_kok_row:['Сборка','Kokoonpano'],ord_reu_row:['Кромка','Reunanauha'],ord_pak_row:['Упаковка','Pakkaus'],
  ord_sheets_done:['Листов на ЧПУ','Levyjä CNC:llä'],
  /* --- сборка (kok) --- */
  takt_h:['Такт-тайм','Tahtiaika'],
@@ -976,7 +977,7 @@ function setState(k,r,note,tl,src){
     if(needAuto(sh,k,r)){sh.sh.push({t:Date.now(),o:cur.o,m:cur.m,oid:cur.oid,a:1});auto=true}
     var e=mkEv(sh,Math.max(Date.now(),cur.t+1),k,r,cx);if(dc)e.dc=1;if(note)e.n=note;if(tl)e.tl=tl;if(src)e.src=src;sh.ev.push(e)}
   touch(sh);feedback();
-  toast(t('rec')+sn(SMAP[k])+(r?' · '+rname(k,r):'')+(tl?' · '+tl:'')+(src?' · '+srcName(src):'')+(cnc&&k==='defect'?' · '+(cx.o||cx.m?[cx.o,cx.m].filter(Boolean).join(' · '):t('ord_unset')):'')+(auto?t('sheet_auto',sh.sh.length):''),true);render();
+  toast(t('rec')+sn(SMAP[k])+(r?' · '+rname(k,r):'')+(tl?' · '+tl:'')+(src?' · '+srcName(src):'')+(cnc&&k==='defect'?' · '+(cx.o||cx.m?[dispO(cx.o,cx.oid),cx.m].filter(Boolean).join(' · '):t('ord_unset')):'')+(auto?t('sheet_auto',sh.sh.length):''),true);render();
 }
 function workRunStart(sh){var i=sh.ev.length-1;while(i>0&&sh.ev[i-1].s==='work')i--;return sh.ev[i].t}
 /* Работа → логистика или установка листа, а за этот проход лист не отмечен: считаем лист готовым */
@@ -994,6 +995,9 @@ function setCtx(o,m,oid){
   if(cur.dc){e.dc=1;sh.ev.push(e);touch(sh);render();return}
   sh.ev.push(e);S.ord=o;S.mat=m;S.oid=oid;touch(sh);render();
 }
+/* заказ показываем по номеру (tilausnumero); имя клиента видит только админ */
+function ordLabel(o){if(!o)return '—';var no=String(o.no||'').trim(),nm=String(o.name||'').trim();if(no)return (UI.ed&&nm&&nm!==no)?no+' · '+nm:no;return nm||'—'}
+function dispO(o,oid){var x=oid&&S.orders[oid];return x?ordLabel(x):(o||'')}
 function applyOrderPick(name,mat,oid){
   if(active())setCtx(name,mat,oid);
   else{S.ord=name;S.mat=mat;S.oid=oid||'';save()}
@@ -1206,8 +1210,8 @@ var VENEER_RX=/шпон|viilu/i,BASE_RX=/мдф|mdf|дсп|dsp|lastulevy/i;
 function veneerNoBase(mats){for(var i=0;i<mats.length;i++){if(VENEER_RX.test(mats[i].m)&&!BASE_RX.test(mats[i].m)&&!mats[i].nb)return i}return-1}
 function finishOrderSave(){
   var d=UI.draft;UI.draft=null;if(!d)return;var oobj;
-  if(d.id&&S.orders[d.id]){oobj=S.orders[d.id];oobj.name=d.name;oobj.k=d.k;oobj.mats=d.mats}
-  else{var ot0=Date.now();oobj={id:'ord_'+ot0.toString(36),v:1,name:d.name,k:d.k,mats:d.mats,done:false,created:ot0}}
+  if(d.id&&S.orders[d.id]){oobj=S.orders[d.id];oobj.name=d.name;oobj.no=d.no||'';oobj.k=d.k;oobj.mats=d.mats}
+  else{var ot0=Date.now();oobj={id:'ord_'+ot0.toString(36),v:1,name:d.name,no:d.no||'',k:d.k,mats:d.mats,done:false,created:ot0}}
   orderSave(oobj);UI.modal=null;render();
 }
 function parseOrderMats(txt){
@@ -1221,16 +1225,16 @@ function parseOrderMats(txt){
 }
 /* время и материалы, фактически потраченные на заказ — по привязке oid в событиях смен */
 function orderStats(oid){
-  var now=Date.now(),cls={VA:0,NVA:0,Hukka:0},byMat={},tr=0,area=0,by={cnc:{tr:0,va:0,n:0,pal:0},kok:{tr:0,va:0,n:0,pal:0}};
+  var now=Date.now(),cls={VA:0,NVA:0,Hukka:0},byMat={},tr=0,area=0,by={cnc:{tr:0,va:0,n:0,pal:0},reu:{tr:0,va:0,n:0,pal:0},kok:{tr:0,va:0,n:0,pal:0},pak:{tr:0,va:0,n:0,pal:0}};
   realShifts().forEach(function(sh){
-    var st=shSt(sh);
+    var st=shSt(sh);if(!by[st])by[st]={tr:0,va:0,n:0,pal:0};
     segs(sh,now).forEach(function(x){
       if(x.oid!==oid||x.s==='break')return;
       if(x.s==='area'){area+=x.d;return}
       var c=clsOf(x);cls[c]+=x.d;tr+=x.d;by[st].tr+=x.d;if(c==='VA')by[st].va+=x.d;
       if(st==='cnc'){var mk=x.m||t('nomat');byMat[mk]=(byMat[mk]||0)+x.d}
     });
-    sh.sh.forEach(function(c){if(c.oid===oid)by[st].n++});
+    (sh.sh||[]).forEach(function(c){if(c.oid===oid)by[st].n++});
     (sh.pl||[]).forEach(function(c){if(c.oid===oid)by[st].pal++});
   });
   return{cls:cls,tr:tr,byMat:byMat,area:area,by:by};
@@ -1301,14 +1305,14 @@ async function exportCsv(kind){
     rows=[['shift_id','date','station','operator','state_key','state','class','reason_key','reason','loss_source','note','order','material','start','end','duration_s','tool']];
     list.forEach(function(sh){segs(sh,now).forEach(function(x){
       var src=(x.s==='defect'||x.s==='over')&&x.src?SRC[srcOf(x)][1]:'';
-      rows.push([sh.id,sh.date,shSt(sh),sh.op,x.s,sn(smOf(x.st,x.s)),x.s==='area'?'Muu asema':clsOf(x)==='—'?'Tauko':clsOf(x),x.r||'',x.r?rname(x.s,x.r,x.st):'',src,x.n||'',x.o||'',x.m||'',iso(x.a),iso(x.b),Math.round(x.d/1000),x.tl||''])})});
+      rows.push([sh.id,sh.date,shSt(sh),sh.op,x.s,sn(smOf(x.st,x.s)),x.s==='area'?'Muu asema':clsOf(x)==='—'?'Tauko':clsOf(x),x.r||'',x.r?rname(x.s,x.r,x.st):'',src,x.n||'',dispO(x.o,x.oid),x.m||'',iso(x.a),iso(x.b),Math.round(x.d/1000),x.tl||''])})});
   }else{
     fn='vuoro_laskurit';
     rows=[['shift_id','date','station','operator','type','time','order','material','seconds_since_prev','auto']];
     list.forEach(function(sh){
       var prev=null,k=shSt(sh)==='cnc'?'levy':shSt(sh)==='reu'?'karry':'kaappi';
-      sh.sh.slice().sort(function(a,b){return a.t-b.t}).forEach(function(x){rows.push([sh.id,sh.date,shSt(sh),sh.op,k,iso(x.t),x.o||'',x.m||'',prev?Math.round((x.t-prev)/1000):'',x.a?1:'']);prev=x.t});
-      var pp=null;(sh.pl||[]).slice().sort(function(a,b){return a.t-b.t}).forEach(function(x){rows.push([sh.id,sh.date,shSt(sh),sh.op,'lava',iso(x.t),x.o||'','',pp?Math.round((x.t-pp)/1000):'','']);pp=x.t});
+      sh.sh.slice().sort(function(a,b){return a.t-b.t}).forEach(function(x){rows.push([sh.id,sh.date,shSt(sh),sh.op,k,iso(x.t),dispO(x.o,x.oid),x.m||'',prev?Math.round((x.t-prev)/1000):'',x.a?1:'']);prev=x.t});
+      var pp=null;(sh.pl||[]).slice().sort(function(a,b){return a.t-b.t}).forEach(function(x){rows.push([sh.id,sh.date,shSt(sh),sh.op,'lava',iso(x.t),dispO(x.o,x.oid),'',pp?Math.round((x.t-pp)/1000):'','']);pp=x.t});
     });
   }
   try{await DL.save({filename:fn+'_'+ymd(now)+'.csv',data:toCsv(rows)})}
@@ -1339,7 +1343,7 @@ function startCard(){
   var open=realShifts().filter(function(s){return !s.end&&s.id!==S.activeId&&(!mine||(s.op||'').trim().toLowerCase()===mine)}).sort(function(a,b){return b.start-a.start})[0]||null;
   var adopt=open?'<div class="card"><h4>'+t('adopt_h')+'</h4><p class="muted">'+t('adopt_p',esc(open.op),hm(open.start),esc(stShort(shSt(open))))+'</p><button class="bigbtn sm" data-act="adopt" data-id="'+open.id+'">'+t('adopt_b')+'</button></div>':'';
   var cnc=S.st==='cnc';
-  var ordSub='<div>'+(S.ord?('<div style="font-weight:600">'+esc(S.ord)+'</div>'+(cnc&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+'</div>';
+  var ordSub='<div>'+(S.ord?('<div style="font-weight:600">'+esc(dispO(S.ord,S.oid))+'</div>'+(cnc&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+'</div>';
   return '<section class="card start"><h4>'+bi('start_h')+'</h4><p>'+t('start_p')+'</p>'
    +'<div class="field"><label>'+bi('st_h')+'</label>'+stTiles(S.st)+'</div>'
    +'<div class="field"><label for="st-op">'+t('op_l')+'</label><input id="st-op" value="'+esc(S.op)+'" autocomplete="off" maxlength="12"'+(UI.user&&!UI.user.admin?' readonly aria-describedby="op-lock"':'')+'>'+(UI.user&&!UI.user.admin?'<small id="op-lock" class="muted">'+t('pp_op_locked')+'</small>':'')+'</div>'
@@ -1380,7 +1384,7 @@ function viewShiftTab(){
     +'<div class="two"><button data-act="stalehide">'+t('stale_hide')+'</button><button class="ok" data-act="endat">'+t('stale_end')+'</button></div></section>':'';
   return stale+'<section class="band" style="--c:var('+st.c+')"><div><div class="name">'+sn(st)+'</div>'+(s2?'<div class="fi">'+s2+'</div>':'')+'</div><div class="timer" id="timer">'+hms(Date.now()-sst)+'</div>'
    +'<div class="meta"><span class="tag">'+clsOf(cur)+'</span><span>'+t('since',hm(sst))+'</span>'+((cur.r||cur.n||cur.tl)?'<span>· '+(cur.r?esc(rname(cur.s,cur.r)):'')+(cur.tl?' '+esc(cur.tl):'')+(cur.n?(cur.r?': ':'')+esc(cur.n):'')+'</span>':'')+'<span class="lnks">'+(cur.s==='work'?'<button class="lnk" data-act="rw" aria-pressed="'+(cur.r==='rw')+'">'+t('rw_b')+'</button>'+(CS==='kok'?'<button class="lnk" data-act="drawer" aria-pressed="'+(cur.r==='drawer')+'">'+t('drw_b')+'</button>':''):'')+'<button class="lnk" data-act="noteedit">'+t('note_b')+'</button><button class="lnk" data-act="earlier">'+t('forgot')+'</button></span></div></section>'
-   +'<div class="ctx" style="grid-template-columns:1fr auto;align-items:center"><div>'+(cur.o?('<div style="font-weight:600">'+esc(cur.o)+'</div>'+(cur.m?'<div class="muted" style="font-size:13px">'+esc(cur.m)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+(cur.dc?'<div class="muted" style="font-size:12px">'+t('def_ctx')+'</div>':'')+'</div><button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'
+   +'<div class="ctx" style="grid-template-columns:1fr auto;align-items:center"><div>'+(cur.o?('<div style="font-weight:600">'+esc(dispO(cur.o,cur.oid))+'</div>'+(cur.m?'<div class="muted" style="font-size:13px">'+esc(cur.m)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+(cur.dc?'<div class="muted" style="font-size:12px">'+t('def_ctx')+'</div>':'')+'</div><button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'
    +'<p class="ctxage'+(ctxAge(sh)>=(CS==='kok'?120*60000:CTX_STALE)?' w':'')+'">'+t('ctx_since',dur(ctxAge(sh)))+'</p>'
    +counterHtml(sh)
    +'<div class="grid">'+STATES.map(function(s){var f=ss(s);return '<button class="sb" style="--c:var('+s.c+')" data-act="state" data-k="'+s.k+'" aria-pressed="'+(cur.s===s.k)+'"><span class="dot"></span><span class="n">'+sn(s)+'</span>'+(f?'<span class="f">'+f+'</span>':'')+(s.hint?'<span class="f">'+(lg()==='ru'?s.hint[0]:s.hint[1])+'</span>':'')+'<span class="cl">'+s.cls+'</span></button>'}).join('')+'</div>'
@@ -1527,11 +1531,11 @@ function viewTrend(){
 }
 function orderRow(o){
   var st=orderStats(o.id),sheetsTot=(o.mats||[]).reduce(function(s,x){return s+(x.sheets||0)},0);
-  var sub=(o.k?t('ord_cabs_short',o.k):'')+(sheetsTot?' · '+sheetsTot+' '+t('sheets_w'):'')+(st.by.kok.n?' · '+t('ord_kok_row')+': '+st.by.kok.n+(o.k?' / '+o.k:'')+' '+t('cabs_w'):'');
-  return '<button class="row" data-act="ordopen" data-id="'+o.id+'"><span class="a">'+esc(o.name||'—')+'</span><span class="b">'+(st.tr>0?dur(st.tr):'—')+'</span><span class="c">'+esc(sub)+'</span><span class="d">'+(st.tr>0?'VA '+pct(st.cls.VA,st.tr):'')+'</span></button>';
+  var sub=(o.k?t('ord_cabs_short',o.k):'')+(sheetsTot?' · '+sheetsTot+' '+t('sheets_w'):'')+(st.by.kok.n?' · '+t('ord_kok_row')+': '+st.by.kok.n+(o.k?' / '+o.k:'')+' '+t('cabs_w'):'')+(st.by.pak.n?' · '+t('ord_pak_row')+': '+st.by.pak.n+(o.k?' / '+o.k:''):'');
+  return '<button class="row" data-act="ordopen" data-id="'+o.id+'"><span class="a">'+esc(ordLabel(o))+'</span><span class="b">'+(st.tr>0?dur(st.tr):'—')+'</span><span class="c">'+esc(sub)+'</span><span class="d">'+(st.tr>0?'VA '+pct(st.cls.VA,st.tr):'')+'</span></button>';
 }
 function ordLists(){
-  var q=UI.oq||'',list=orderList().filter(function(o){return qMatch(String(o.name||'').toLowerCase(),q)});
+  var q=UI.oq||'',list=orderList().filter(function(o){return qMatch((String(o.no||'')+' '+(UI.ed?String(o.name||''):'')).toLowerCase(),q)});
   var act=list.filter(function(o){return !o.done}),done=list.filter(function(o){return o.done});
   var showA=(q||UI.oAll)?act:act.slice(0,LIST_N);
   var a=act.length?'<div class="list">'+showA.map(orderRow).join('')+'</div>'+(!q&&act.length>LIST_N?'<button class="mini more" data-act="oall">'+(UI.oAll?t('show_less'):t('show_all',act.length))+'</button>':''):(q?'':'<p class="muted" style="margin:0">'+t('ord_none')+'</p>');
@@ -1553,6 +1557,8 @@ function ordStatsHtml(oid){
   var kv='<span>'+t('ord_time_total')+'</span><b class="mono">'+dur(st.tr)+'</b>';
   if(st.by.cnc.tr>0)kv+='<span>'+t('ord_cnc_row')+'</span><b class="mono">'+dur(st.by.cnc.tr)+' · '+st.by.cnc.n+' '+t('sheets_w')+'</b>';
   if(st.by.kok.tr>0)kv+='<span>'+t('ord_kok_row')+'</span><b class="mono">'+dur(st.by.kok.tr)+' · '+kk+' '+t('cabs_w')+(st.by.kok.pal?' · '+t('n_pal',st.by.kok.pal):'')+'</b>';
+  if(st.by.reu.tr>0)kv+='<span>'+t('ord_reu_row')+'</span><b class="mono">'+dur(st.by.reu.tr)+(st.by.reu.n?' · '+t('n_trl',st.by.reu.n):'')+'</b>';
+  if(st.by.pak.tr>0||st.by.pak.n)kv+='<span>'+t('ord_pak_row')+'</span><b class="mono">'+dur(st.by.pak.tr)+' · '+st.by.pak.n+(k?' / '+k:'')+' '+t('cabs_w')+(st.by.pak.pal?' · '+t('n_pal',st.by.pak.pal):'')+'</b>';
   if(k)kv+='<span>'+t('ord_time_percab')+'</span><b class="mono">'+dur(st.tr/k)+'</b><span>'+t('ord_time_va_percab')+'</span><b class="mono">'+dur(st.cls.VA/k)+'</b>';
   if(kk>0&&st.by.kok.tr>0)kv+='<span>'+t('ord_kok_percab')+'</span><b class="mono">'+dur(st.by.kok.tr/kk)+'</b><span>'+t('ord_kok_va_percab')+'</span><b class="mono">'+dur(st.by.kok.va/kk)+'</b>';
   if(st.area>0)kv+='<span>'+t('ord_area')+'</span><b class="mono">'+dur(st.area)+'</b>';
@@ -1793,22 +1799,23 @@ function renderModal(){
   }else if(m.type==='ordpick'){
     var opts=orderList().filter(function(o){return !o.done});
     inner='<h3>'+t('ord_pick_h')+'</h3>'
-     +(opts.length?opts.map(function(o){return '<button class="rb" data-act="ordpicksel" data-id="'+o.id+'">'+esc(o.name)+'<small>'+t('ord_cabs_short',o.k||0)+'</small></button>'}).join(''):'<p class="q">'+t('ord_pick_none')+'</p>')
+     +(opts.length?opts.map(function(o){return '<button class="rb" data-act="ordpicksel" data-id="'+o.id+'">'+esc(ordLabel(o))+'<small>'+t('ord_cabs_short',o.k||0)+'</small></button>'}).join(''):'<p class="q">'+t('ord_pick_none')+'</p>')
      +'<button class="rb ghost" data-act="ordpicksel" data-id="">'+t('ord_unset')+'</button>'
      +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
   }else if(m.type==='ordpickmat'){
     var pmo=S.orders[m.oid];
-    inner='<h3>'+esc(pmo.name)+'</h3><p class="q">'+t('ord_pick_mat_h')+'</p>'
+    inner='<h3>'+esc(ordLabel(pmo))+'</h3><p class="q">'+t('ord_pick_mat_h')+'</p>'
      +pmo.mats.map(function(mt,i){return '<button class="rb" data-act="ordpickmatsel" data-i="'+i+'">'+esc(mt.m)+(mt.sheets?'<small>'+mt.sheets+' '+t('sheets_w')+'</small>':'')+'</button>'}).join('')
      +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
   }else if(m.type==='ordedit'&&!UI.ed){
     var ro=S.orders[m.id];
-    inner=ro?'<h3>'+esc(ro.name)+'</h3><p class="q">'+t('ord_cabs_short',ro.k||0)+'</p>'+ordStatsHtml(ro.id)+'<div class="two" style="grid-template-columns:1fr"><button data-act="close">'+t('cancel')+'</button></div>':'';
+    inner=ro?'<h3>'+esc(ordLabel(ro))+'</h3><p class="q">'+t('ord_cabs_short',ro.k||0)+'</p>'+ordStatsHtml(ro.id)+'<div class="two" style="grid-template-columns:1fr"><button data-act="close">'+t('cancel')+'</button></div>':'';
   }else if(m.type==='ordedit'){
     var isNew=!m.id,oe=isNew?null:S.orders[m.id];
     var matsText=oe?(oe.mats||[]).map(function(x){return x.m+(x.sheets?' = '+x.sheets:'')}).join('\n'):'';
-    inner='<h3>'+(isNew?t('ord_new'):esc(oe.name))+'</h3>'
-     +'<div class="field"><label for="ord-name">'+t('ord_name_l')+'</label><input id="ord-name" value="'+esc(oe?oe.name:'')+'" autocomplete="off"></div>'
+    inner='<h3>'+(isNew?t('ord_new'):esc(ordLabel(oe)))+'</h3>'
+     +'<div class="field"><label for="ord-no">'+t('ord_no_l')+'</label><input id="ord-no" value="'+esc(oe&&oe.no?oe.no:'')+'" autocomplete="off" placeholder="'+esc(t('ord_no_ph'))+'"></div>'
+     +'<div class="field" style="margin-top:10px"><label for="ord-name">'+t('ord_name_l')+'</label><input id="ord-name" value="'+esc(oe?oe.name:'')+'" autocomplete="off"></div>'
      +'<div class="field" style="margin-top:10px"><label for="ord-cabs">'+t('ord_cabs_l')+'</label><input id="ord-cabs" type="number" inputmode="numeric" value="'+(oe&&oe.k?oe.k:'')+'"></div>'
      +'<div class="field" style="margin-top:10px"><label for="ord-mats">'+t('ord_mats_l')+'</label><textarea id="ord-mats" rows="4" spellcheck="false" placeholder="Меламин белый = 8&#10;МДФ тунто2 = 3">'+esc(matsText)+'</textarea></div>'
      +'<div class="two"><button data-act="close">'+t('cancel')+'</button><button class="ok" data-act="ordsave" data-id="'+(isNew?'':oe.id)+'">'+t('ord_save')+'</button></div>'
@@ -1914,12 +1921,13 @@ document.addEventListener('click',function(e){
     case 'ordopen':UI.modal={type:'ordedit',id:b.dataset.id};renderModal();break;
     case 'ordsave':
       if(!UI.ed)break;
-      var onm=($('#ord-name').value||'').trim();
-      if(!onm){toast(t('ord_need_name'));break}
+      var onm=($('#ord-name').value||'').trim(),ono=(($('#ord-no')||{}).value||'').trim();
+      if(!onm&&!ono){toast(t('ord_need_name'));break}
+      if(!onm)onm=ono;
       var okk=parseInt($('#ord-cabs').value,10)||0,omats=parseOrderMats($('#ord-mats').value),oid3=b.dataset.id;
       var oldM=(oid3&&S.orders[oid3]&&S.orders[oid3].mats)||[];
       omats.forEach(function(x){if(oldM.some(function(y){return y.nb&&y.m===x.m}))x.nb=1});
-      UI.draft={id:oid3||'',name:onm,k:okk,mats:omats};
+      UI.draft={id:oid3||'',name:onm,no:ono,k:okk,mats:omats};
       var vi=veneerNoBase(omats);
       if(vi>=0){UI.modal={type:'baseq',i:vi};renderModal();break}
       finishOrderSave();break;
