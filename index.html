@@ -624,8 +624,8 @@ var STATES_R=[
  {k:'prep',ru:'Подготовка',fi:'Valmistelu',cls:'NVA',c:'--c-prep',reasons:[]},
  {k:'work',ru:'Кромкование',fi:'Reunanauhoitus',cls:'VA',c:'--c-work',reasons:[]},
  {k:'saw',ru:'Распил',fi:'Sahaaminen',cls:'VA',c:'--c-pack',reasons:[]},
- {k:'dowel',ru:'Присадка под шканты',fi:'Tapitus',cls:'VA',c:'--c-dowel',reasons:[],hint:['сверление под шканты','tappireikien poraus']},
- {k:'sort',ru:'Сортировка в тележки',fi:'Lajittelu',cls:'NVA',c:'--c-shelf',reasons:[],hint:['тележки для сборки','kärryt kokoonpanoon']},
+ {k:'dowel',ru:'Присадка и сортировка',fi:'Tapitus ja lajittelu',cls:'VA',c:'--c-dowel',reasons:[],hint:['шканты и раскладка по тележкам','tappireiät ja lajittelu kärryihin']},
+ {k:'sort',ru:'Сортировка в тележки',fi:'Lajittelu',cls:'NVA',c:'--c-shelf',reasons:[],hide:true},
  {k:'s5',ru:'5S: уборка и порядок',fi:'5S ja siivous',cls:'NVA',c:'--c-check',reasons:[]},
  {k:'wait',ru:'Ожидание',fi:'Odotus',cls:'Hukka',c:'--c-wait',reasons:[
    ['parts','Жду детали (ЧПУ)','Odotan osia (CNC)'],['machine','Станок сломан или обслуживание','Kone rikki tai huolto'],['help','Жду помощь или решение','Odotan apua tai päätöstä']]},
@@ -1387,7 +1387,7 @@ function viewShiftTab(){
    +'<div class="ctx" style="grid-template-columns:1fr auto;align-items:center"><div>'+(cur.o?('<div style="font-weight:600">'+esc(dispO(cur.o,cur.oid))+'</div>'+(cur.m?'<div class="muted" style="font-size:13px">'+esc(cur.m)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+(cur.dc?'<div class="muted" style="font-size:12px">'+t('def_ctx')+'</div>':'')+'</div><button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'
    +'<p class="ctxage'+(ctxAge(sh)>=(CS==='kok'?120*60000:CTX_STALE)?' w':'')+'">'+t('ctx_since',dur(ctxAge(sh)))+'</p>'
    +counterHtml(sh)
-   +'<div class="grid">'+STATES.map(function(s){var f=ss(s);return '<button class="sb" style="--c:var('+s.c+')" data-act="state" data-k="'+s.k+'" aria-pressed="'+(cur.s===s.k)+'"><span class="dot"></span><span class="n">'+sn(s)+'</span>'+(f?'<span class="f">'+f+'</span>':'')+(s.hint?'<span class="f">'+(lg()==='ru'?s.hint[0]:s.hint[1])+'</span>':'')+'<span class="cl">'+s.cls+'</span></button>'}).join('')+'</div>'
+   +'<div class="grid">'+STATES.filter(function(s){return !s.hide||cur.s===s.k}).map(function(s){var f=ss(s);return '<button class="sb" style="--c:var('+s.c+')" data-act="state" data-k="'+s.k+'" aria-pressed="'+(cur.s===s.k)+'"><span class="dot"></span><span class="n">'+sn(s)+'</span>'+(f?'<span class="f">'+f+'</span>':'')+(s.hint?'<span class="f">'+(lg()==='ru'?s.hint[0]:s.hint[1])+'</span>':'')+'<span class="cl">'+s.cls+'</span></button>'}).join('')+'</div>'
    +(CS==='cnc'?toolCardHtml():'')
    +'<div class="endrow">'+(navigator.wakeLock?'<button data-act="wake" aria-pressed="'+UI.wake+'">'+(UI.wake?t('wake_on'):t('wake_off'))+'</button>':'<span></span>')+'<button data-act="end">'+t('end_b')+(t2('end_s')?'<br>'+t2('end_s'):'')+'</button></div>';
 }
