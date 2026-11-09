@@ -435,7 +435,7 @@ var TR={
  stn_cnc:['ЧПУ','CNC'],stn_kok:['Сборка','Kokoonpano'],stn_pak:['Упаковка','Pakkaus'],stn_reu:['Кромка','Reunanauha'],stn_kom:['Композит','Komposiitti'],
  st_cnc_s:['Раскрой плит','Levyjen leikkaus'],st_kok_s:['Сборка корпусов','Runkojen kokoonpano'],st_pak_s:['Доводка и упаковка','Viimeistely ja pakkaus'],st_reu_s:['Кромка, распил, тележки','Reunanauhoitus, sahaus, kärryt'],st_kom_s:['Раковины и столешницы','Altaat ja tasot'],
  kom_l:['Готово изделий · Valmiit','Valmiita tuotteita vuorossa'],kom_b:['＋ Изделие готово','＋ Valmis'],kom_rec:[function(n){return 'Готово изделий: '+n},function(n){return 'Valmiita: '+n}],
- kom_h:['Время по изделиям','Aika tuotteittain'],kom_none:['Тип изделия не выбран','Tuotetta ei valittu'],kom_pick_h:['Что делаем?','Mitä tehdään?'],
+ kom_h:['Время по изделиям','Aika tuotteittain'],kom_tuote:['Изделие','Tuote'],kom_pick_b:['Выбрать','Valitse'],kom_none:['Тип изделия не выбран','Tuotetta ei valittu'],kom_pick_h:['Что делаем?','Mitä tehdään?'],
  kom_col:['готово · время · на 1 шт · из них подгонка','valmis · aika · per kpl · josta sovitus'],kom_note:['Время всех состояний, кроме перерывов и другого участка, делится на изделия того типа, который был выбран в контексте.','Aika (ilman taukoja ja muuta asemaa) jaetaan valitun tuotetyypin valmiille kappaleille.'],
  n_pcs:[function(n){return n+' шт.'},function(n){return n+' kpl'}],ord_kom_row:['Композит','Komposiitti'],
  reu_l:['Тележек за смену · Kärryt','Kärryjä vuorossa'],reu_b:['＋ Тележка готова','＋ Kärry valmis'],reu_s:['Kärry valmis',''],
@@ -665,6 +665,9 @@ var STATES_M=[
    ['coffee','Кофе-пауза (оплачивается)','Kahvitauko (maksettu)'],['lunch','Обед (не оплачивается)','Ruokatauko (maksamaton)']]}
 ];
 function hasM(st){return st==='cnc'||st==='kom'}
+/* тип изделия композита: отдельная строка с кнопкой, чтобы выбор был виден сразу */
+function komOk(m){return KOM_TYPES.indexOf(m)>=0}
+function komRow(m){m=komOk(m)?m:'';return '<div class="ctx" style="grid-template-columns:1fr auto;align-items:center;margin-top:8px"><div><div class="muted" style="font-size:12px">'+t('kom_tuote')+'</div><div style="font-weight:600">'+(m?esc(m):'<span style="color:var(--c-wait)">'+t('kom_none')+'</span>')+'</div></div><button class="mini" data-act="kompick0" style="width:auto;padding:8px 14px">'+t('kom_pick_b')+'</button></div>'}
 /* ---------- участки: у каждого свой набор состояний и причин ---------- */
 var STN=['cnc','reu','kok','pak','kom'];
 var SETS={cnc:{states:STATES_C,first:'prep'},kok:{states:STATES_K,first:'prep'},pak:{states:STATES_P,first:'kit'},reu:{states:STATES_R,first:'prep'},kom:{states:STATES_M,first:'prep'}};
@@ -943,7 +946,7 @@ function feedback(){try{navigator.vibrate&&navigator.vibrate(15)}catch(e){}}
 function snapshot(){var sh=active();UNDO=sh?JSON.stringify(sh):null}
 function toast(text,undo){UI.toast={text:text,undo:!!undo};renderToast();clearTimeout(toast.t);toast.t=setTimeout(function(){UI.toast=null;renderToast()},6000)}
 function startShift(op,ord,mat,oid,st){
-  var t0=Date.now();st=normSt(st);
+  var t0=Date.now();st=normSt(st);if(st==='kom'?!komOk(mat):komOk(mat))mat='';
   var ev0={t:t0,s:SETS[st].first,r:null,o:ord||'',oid:oid||''};if(hasM(st))ev0.m=mat||'';
   var sh={id:'sh_'+t0.toString(36),date:ymd(t0),op:op||'—',st:st,start:t0,end:null,ev:[ev0],sh:[],upd:t0};
   if(st!=='cnc')sh.pl=[];
@@ -1379,12 +1382,12 @@ function startCard(){
   var mine=(S.op||'').trim().toLowerCase();
   var open=realShifts().filter(function(s){return !s.end&&s.id!==S.activeId&&(!mine||(s.op||'').trim().toLowerCase()===mine)}).sort(function(a,b){return b.start-a.start})[0]||null;
   var adopt=open?'<div class="card"><h4>'+t('adopt_h')+'</h4><p class="muted">'+t('adopt_p',esc(open.op),hm(open.start),esc(stShort(shSt(open))))+'</p><button class="bigbtn sm" data-act="adopt" data-id="'+open.id+'">'+t('adopt_b')+'</button></div>':'';
-  var cnc=hasM(S.st);
-  var ordSub='<div>'+(S.ord?('<div style="font-weight:600">'+esc(dispO(S.ord,S.oid))+'</div>'+(cnc&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>'+(S.st==='kom'&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':''))+'</div>';
+  var cnc=S.st==='cnc';
+  var ordSub='<div>'+(S.ord?('<div style="font-weight:600">'+esc(dispO(S.ord,S.oid))+'</div>'+(cnc&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+'</div>';
   return '<section class="card start"><h4>'+bi('start_h')+'</h4><p>'+t('start_p')+'</p>'
    +'<div class="field"><label>'+bi('st_h')+'</label>'+stTiles(S.st)+'</div>'
    +'<div class="field"><label for="st-op">'+t('op_l')+'</label><input id="st-op" value="'+esc(S.op)+'" autocomplete="off" maxlength="12"'+(UI.user&&!UI.user.admin?' readonly aria-describedby="op-lock"':'')+'>'+(UI.user&&!UI.user.admin?'<small id="op-lock" class="muted">'+t('pp_op_locked')+'</small>':'')+'</div>'
-   +'<div class="ctx" style="grid-template-columns:1fr auto;margin-top:10px;align-items:center">'+ordSub+'<button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'
+   +'<div class="ctx" style="grid-template-columns:1fr auto;margin-top:10px;align-items:center">'+ordSub+'<button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'+(S.st==='kom'?komRow(S.mat):'')
    +'<div style="height:14px"></div><button class="bigbtn'+(S.st?'':' off')+'" data-act="start">'+t('start_b')+'<small>'+(S.st?t('start_s',sn(SETS[S.st].map[SETS[S.st].first])):'')+'</small></button></section>'+adopt;
 }
 function counterHtml(sh){
@@ -1426,7 +1429,7 @@ function viewShiftTab(){
     +'<div class="two"><button data-act="stalehide">'+t('stale_hide')+'</button><button class="ok" data-act="endat">'+t('stale_end')+'</button></div></section>':'';
   return stale+'<section class="band" style="--c:var('+st.c+')"><div><div class="name">'+sn(st)+'</div>'+(s2?'<div class="fi">'+s2+'</div>':'')+'</div><div class="timer" id="timer">'+hms(Date.now()-sst)+'</div>'
    +'<div class="meta"><span class="tag">'+clsOf(cur)+'</span><span>'+t('since',hm(sst))+'</span>'+((cur.r||cur.n||cur.tl)?'<span>· '+(cur.r?esc(rname(cur.s,cur.r)):'')+(cur.tl?' '+esc(cur.tl):'')+(cur.n?(cur.r?': ':'')+esc(cur.n):'')+'</span>':'')+'<span class="lnks">'+(cur.s==='work'?'<button class="lnk" data-act="rw" aria-pressed="'+(cur.r==='rw')+'">'+t('rw_b')+'</button>'+(CS==='kok'?'<button class="lnk" data-act="drawer" aria-pressed="'+(cur.r==='drawer')+'">'+t('drw_b')+'</button>':''):'')+'<button class="lnk" data-act="noteedit">'+t('note_b')+'</button><button class="lnk" data-act="earlier">'+t('forgot')+'</button></span></div></section>'
-   +'<div class="ctx" style="grid-template-columns:1fr auto;align-items:center"><div>'+(cur.o?('<div style="font-weight:600">'+esc(dispO(cur.o,cur.oid))+'</div>'+(cur.m?'<div class="muted" style="font-size:13px">'+esc(cur.m)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+(cur.dc?'<div class="muted" style="font-size:12px">'+t('def_ctx')+'</div>':'')+'</div><button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'
+   +'<div class="ctx" style="grid-template-columns:1fr auto;align-items:center"><div>'+(cur.o?('<div style="font-weight:600">'+esc(dispO(cur.o,cur.oid))+'</div>'+(cur.m&&CS!=='kom'?'<div class="muted" style="font-size:13px">'+esc(cur.m)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+(cur.dc?'<div class="muted" style="font-size:12px">'+t('def_ctx')+'</div>':'')+'</div><button class="mini" data-act="ordpick" style="width:auto;padding:8px 14px">'+t('ord_change')+'</button></div>'+(CS==='kom'?komRow(cur.m):'')
    +'<p class="ctxage'+(ctxAge(sh)>=(CS==='kok'?120*60000:CTX_STALE)?' w':'')+'">'+t('ctx_since',dur(ctxAge(sh)))+'</p>'
    +counterHtml(sh)
    +'<div class="grid">'+STATES.filter(function(s){return !s.hide||cur.s===s.k}).map(function(s){var f=ss(s);return '<button class="sb" style="--c:var('+s.c+')" data-act="state" data-k="'+s.k+'" aria-pressed="'+(cur.s===s.k)+'"><span class="dot"></span><span class="n">'+sn(s)+'</span>'+(f?'<span class="f">'+f+'</span>':'')+(s.hint?'<span class="f">'+(lg()==='ru'?s.hint[0]:s.hint[1])+'</span>':'')+'<span class="cl">'+s.cls+'</span></button>'}).join('')+'</div>'
@@ -1858,7 +1861,7 @@ function renderModal(){
      +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
   }else if(m.type==='kompick'){
     var kpo=m.oid?S.orders[m.oid]:null;
-    inner='<h3>'+(kpo?esc(ordLabel(kpo)):t('ord_unset'))+'</h3><p class="q">'+t('kom_pick_h')+'</p>'
+    inner='<h3>'+(kpo?esc(ordLabel(kpo)):m.ko?esc(m.ko):t('ord_unset'))+'</h3><p class="q">'+t('kom_pick_h')+'</p>'
      +KOM_TYPES.map(function(x,i){return '<button class="rb" data-act="kompicksel" data-i="'+i+'">'+esc(x)+'</button>'}).join('')
      +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
   }else if(m.type==='ordpickmat'){
@@ -1893,7 +1896,7 @@ document.addEventListener('click',function(e){
   switch(a){
     case 'lang':S.lang=b.dataset.l==='ru'?'ru':'fi';save();UI.modal=null;render();break;
     case 'tab':UI.tab=b.dataset.t;if(b.dataset.t==='shift')UI.viewId=null;render();window.scrollTo(0,0);break;
-    case 'stpick':var sti=$('#st-op');if(sti)S.op=(sti.value||'').trim();S.st=normSt(b.dataset.s);save();render();break;
+    case 'stpick':var sti=$('#st-op');if(sti)S.op=(sti.value||'').trim();S.st=normSt(b.dataset.s);if(S.st==='kom'?!komOk(S.mat):komOk(S.mat))S.mat='';save();render();break;
     case 'start':var soi=$('#st-op');S.op=soi?(soi.value||'').trim():S.op;
       if(!S.st){toast(t('st_need'));break}
       startShift(S.op,S.ord,hasM(S.st)?S.mat:'',S.oid,S.st);render();break;
@@ -1975,9 +1978,10 @@ document.addEventListener('click',function(e){
       if(pmats.length<=1){UI.modal=null;applyOrderPick(pord.name,pmats.length?pmats[0].m:'',poid);render()}
       else{UI.modal={type:'ordpickmat',oid:poid};renderModal()}
       break;
+    case 'kompick0':var ka=active(),kc=ka?last(ka):{o:S.ord,oid:S.oid};UI.modal={type:'kompick',oid:kc.oid||'',keep:1,ko:kc.o||''};renderModal();break;
     case 'kompicksel':
-      var koid=UI.modal.oid||'',kord=koid?S.orders[koid]:null;
-      UI.modal=null;applyOrderPick(kord?kord.name:'',KOM_TYPES[+b.dataset.i]||'',kord?koid:'');render();break;
+      var kmd=UI.modal,koid=kmd.oid||'',kord=koid?S.orders[koid]:null,kty=KOM_TYPES[+b.dataset.i]||'';
+      UI.modal=null;if(kmd.keep)applyOrderPick(kmd.ko,kty,koid);else applyOrderPick(kord?kord.name:'',kty,kord?koid:'');render();break;
     case 'ordpickmatsel':
       var pmoid=UI.modal.oid,pmord=S.orders[pmoid],pmi=+b.dataset.i;
       UI.modal=null;applyOrderPick(pmord.name,pmord.mats[pmi]?pmord.mats[pmi].m:'',pmoid);render();break;
