@@ -248,7 +248,7 @@ if(!S.known)S.known={};
 if(!S.dirty)S.dirty={};
 Object.keys(S.shifts).forEach(function(k){var x=S.shifts[k];if(!(x&&Array.isArray(x.ev)&&x.ev.length&&Array.isArray(x.sh))){delete S.shifts[k];delete S.dirty[k]}});
 if(!S.cfg)S.cfg=Object.assign({},CFG_DEF);
-if(['cnc','kok','pak','reu'].indexOf(S.st)<0)S.st='';
+if(['cnc','kok','pak','reu','kom'].indexOf(S.st)<0)S.st='';
 function save(){try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}}
 function lg(){return S.lang==='ru'?'ru':'fi'}
 
@@ -432,8 +432,12 @@ var TR={
  stale_bad:[function(h){return 'Раньше нельзя: последняя запись в '+h},function(h){return 'Ei voi aikaisemmin: viimeisin kirjaus klo '+h}],
  /* --- общее приложение: участки, вход, перенос --- */
  sy_auth:['нужен вход','kirjaudu'],
- stn_cnc:['ЧПУ','CNC'],stn_kok:['Сборка','Kokoonpano'],stn_pak:['Упаковка','Pakkaus'],stn_reu:['Кромка','Reunanauha'],
- st_cnc_s:['Раскрой плит','Levyjen leikkaus'],st_kok_s:['Сборка корпусов','Runkojen kokoonpano'],st_pak_s:['Доводка и упаковка','Viimeistely ja pakkaus'],st_reu_s:['Кромка, распил, тележки','Reunanauhoitus, sahaus, kärryt'],
+ stn_cnc:['ЧПУ','CNC'],stn_kok:['Сборка','Kokoonpano'],stn_pak:['Упаковка','Pakkaus'],stn_reu:['Кромка','Reunanauha'],stn_kom:['Композит','Komposiitti'],
+ st_cnc_s:['Раскрой плит','Levyjen leikkaus'],st_kok_s:['Сборка корпусов','Runkojen kokoonpano'],st_pak_s:['Доводка и упаковка','Viimeistely ja pakkaus'],st_reu_s:['Кромка, распил, тележки','Reunanauhoitus, sahaus, kärryt'],st_kom_s:['Раковины и столешницы','Altaat ja tasot'],
+ kom_l:['Готово изделий · Valmiit','Valmiita tuotteita vuorossa'],kom_b:['＋ Изделие готово','＋ Valmis'],kom_rec:[function(n){return 'Готово изделий: '+n},function(n){return 'Valmiita: '+n}],
+ kom_h:['Время по изделиям','Aika tuotteittain'],kom_none:['Тип изделия не выбран','Tuotetta ei valittu'],kom_pick_h:['Что делаем?','Mitä tehdään?'],
+ kom_col:['готово · время · на 1 шт · из них подгонка','valmis · aika · per kpl · josta sovitus'],kom_note:['Время всех состояний, кроме перерывов и другого участка, делится на изделия того типа, который был выбран в контексте.','Aika (ilman taukoja ja muuta asemaa) jaetaan valitun tuotetyypin valmiille kappaleille.'],
+ n_pcs:[function(n){return n+' шт.'},function(n){return n+' kpl'}],ord_kom_row:['Композит','Komposiitti'],
  reu_l:['Тележек за смену · Kärryt','Kärryjä vuorossa'],reu_b:['＋ Тележка готова','＋ Kärry valmis'],reu_s:['Kärry valmis',''],
  trl_rec:[function(n){return 'Тележка №'+n+' записана'},function(n){return 'Kärry nro '+n+' tallennettu'}],
  trl_h:['Тележки','Kärryt'],trl_w:['тел.','kärryä'],n_trl:[function(n){return n+' тел.'},function(n){return n+' kärryä'}],
@@ -528,6 +532,9 @@ var TR={
  'already@kok':['Уже идёт сборка','Kokoaminen on jo käynnissä'],
  'avg_l@kok':[function(d){return 'чистых '+d+' на корпус'},function(d){return 'nettoaika '+d+' / kaappi'}],
  'end_txt@kok':[function(d,n){return 'Идёт '+d+', корпусов: '+n+'. Vuoro päättyy.'},function(d,n){return 'Kesto '+d+', kaappeja: '+n+'.'}],
+ 'end_txt@kom':[function(d,n){return 'Идёт '+d+', изделий: '+n+'. Vuoro päättyy.'},function(d,n){return 'Kesto '+d+', valmiita: '+n+'.'}],
+ 'ctx_since@kom':[function(d){return 'Заказ или изделие сменены '+d+' назад'},function(d){return 'Tilaus tai tuote vaihdettu '+d+' sitten'}],
+ 'cab_rec@kom':[function(n){return 'Изделие №'+n+' записано'},function(n){return 'Tuote nro '+n+' tallennettu'}],
  'rw_b@kok':['↻ Переделка','↻ Korjaus'],
  'rw_on@kok':['Помечено как переделка (Hukka)','Merkitty korjaukseksi (Hukka)'],
  'note_def_ph@kok':['Что именно? Напр.: нет кромки на боковине','Mitä tarkalleen? Esim. sivulta puuttuu reunanauha'],
@@ -635,16 +642,39 @@ var STATES_R=[
  {k:'break',ru:'Перерыв',fi:'Tauko',cls:'—',c:'--c-break',reasons:[
    ['coffee','Кофе-пауза (оплачивается)','Kahvitauko (maksettu)'],['lunch','Обед (не оплачивается)','Ruokatauko (maksamaton)']]}
 ];
+/* композит (Сами): раковины Kuutioallas и столешницы; тип изделия хранится в поле m, как материал на ЧПУ */
+var KOM_TYPES=['Kuutioallas XS','Kuutioallas S','Kuutioallas M','Kuutioallas L','Viisteallas','Valmisallas tasoon (toimittajalta)','Taso ilman allasta','Muu komposiittityö'];
+var STATES_M=[
+ {k:'prep',ru:'Подготовка',fi:'Valmistelu',cls:'NVA',c:'--c-prep',reasons:[],hint:['приготовление клея, струбцины, поиск деталей','liiman valmistus, puristimet, osien haku']},
+ {k:'check',ru:'Проверка деталей с ЧПУ',fi:'Osien tarkistus',cls:'NVA',c:'--c-check',reasons:[],hint:['раскладка и проверка комплекта','sarjan purku ja tarkistus']},
+ {k:'fit',ru:'Подгонка и доработка',fi:'Sovitus ja jälkityöstö',cls:'Hukka',c:'--c-over',reasons:[
+   ['trim','Снятие свесов','Ylitysten trimmaus'],['angle','Пропил углов на циркулярке','Kulmasahaus pyörösahalla'],['other','Другое (в заметке)','Muu (kirjoita)']]},
+ {k:'glue',ru:'Склейка',fi:'Liimaus',cls:'VA',c:'--c-work',reasons:[],hint:['корпус раковины, сращивание столешницы','altaan runko, tason jatkos']},
+ {k:'mount',ru:'Вклейка раковины в столешницу',fi:'Altaan liimaus tasoon',cls:'VA',c:'--c-pack',reasons:[]},
+ {k:'mill',ru:'Фрезеровка и шлифовка',fi:'Jyrsintä ja hionta',cls:'VA',c:'--c-dowel',reasons:[]},
+ {k:'qc',ru:'Контроль качества',fi:'Laaduntarkistus',cls:'NVA',c:'--c-kit',reasons:[]},
+ {k:'move',ru:'Перемещение и упаковка',fi:'Siirto ja pakkaus',cls:'NVA',c:'--c-log',reasons:[]},
+ {k:'wait',ru:'Ожидание',fi:'Odotus',cls:'Hukka',c:'--c-wait',reasons:[
+   ['parts','Жду детали с ЧПУ','Odotan osia CNC:ltä'],['cure','Сохнет клей, другой работы нет','Liima kovettuu, ei muuta työtä'],['help','Жду помощь или решение','Odotan apua tai päätöstä']]},
+ {k:'defect',ru:'Брак, переделка',fi:'Virhe',cls:'Hukka',c:'--c-defect',reasons:[
+   ['cnc','Деталь с ЧПУ неверная','CNC-osa väärin'],['own','Исправляю свою ошибку','Oma korjaus'],['mat','Дефект материала','Materiaalivika']]},
+ {k:'s5',ru:'5S: уборка и порядок',fi:'5S ja siivous',cls:'NVA',c:'--c-shelf',reasons:[]},
+ {k:'area',ru:'Работа на другом участке',fi:'Työ toisella asemalla',cls:'—',c:'--c-area',reasons:[],noteOnly:true,hint:['шлифовка, упаковка…','hionta, pakkaus…'],ph:['Что делаешь? Одним словом: шлифовка, упаковка…','Mitä teet? Yhdellä sanalla: hionta, pakkaus…']},
+ {k:'misc',ru:'Другая работа',fi:'Muu työ',cls:'NVA',c:'--c-misc',reasons:[],noteOnly:true},
+ {k:'break',ru:'Перерыв',fi:'Tauko',cls:'—',c:'--c-break',reasons:[
+   ['coffee','Кофе-пауза (оплачивается)','Kahvitauko (maksettu)'],['lunch','Обед (не оплачивается)','Ruokatauko (maksamaton)']]}
+];
+function hasM(st){return st==='cnc'||st==='kom'}
 /* ---------- участки: у каждого свой набор состояний и причин ---------- */
-var STN=['cnc','reu','kok','pak'];
-var SETS={cnc:{states:STATES_C,first:'prep'},kok:{states:STATES_K,first:'prep'},pak:{states:STATES_P,first:'kit'},reu:{states:STATES_R,first:'prep'}};
+var STN=['cnc','reu','kok','pak','kom'];
+var SETS={cnc:{states:STATES_C,first:'prep'},kok:{states:STATES_K,first:'prep'},pak:{states:STATES_P,first:'kit'},reu:{states:STATES_R,first:'prep'},kom:{states:STATES_M,first:'prep'}};
 function normSt(st){return SETS[st]?st:'cnc'}
 STN.forEach(function(k){SETS[k].map={};SETS[k].states.forEach(function(s){SETS[k].map[s.k]=s})});
-var CLS={work:'VA',pack:'VA',saw:'VA',dowel:'VA',sort:'NVA',s5:'NVA',log:'NVA',prep:'NVA',misc:'NVA',kit:'NVA',shelf:'NVA',check:'NVA',defect:'Hukka',wait:'Hukka',search:'Hukka',over:'Hukka',area:'—',break:'—'};
+var CLS={work:'VA',pack:'VA',saw:'VA',dowel:'VA',sort:'NVA',s5:'NVA',log:'NVA',prep:'NVA',misc:'NVA',kit:'NVA',shelf:'NVA',check:'NVA',defect:'Hukka',wait:'Hukka',search:'Hukka',over:'Hukka',area:'—',break:'—',fit:'Hukka',glue:'VA',mount:'VA',mill:'VA',qc:'NVA',move:'NVA'};
 var CS='cnc',STATES=SETS.cnc.states,SMAP=SETS.cnc.map;
 function useSt(st){CS=SETS[st]?st:'cnc';STATES=SETS[CS].states;SMAP=SETS[CS].map}
 function shSt(sh){if(!sh)return 'cnc';if(SETS[sh.st])return sh.st;return (!sh.st&&Array.isArray(sh.pl))?'kok':'cnc'}
-function smOf(st,k){return(SETS[st]||SETS.cnc).map[k]||SETS.cnc.map[k]||SETS.kok.map[k]||SETS.pak.map[k]||SETS.reu.map[k]}
+function smOf(st,k){return(SETS[st]||SETS.cnc).map[k]||SETS.cnc.map[k]||SETS.kok.map[k]||SETS.pak.map[k]||SETS.reu.map[k]||SETS.kom.map[k]}
 function stShort(st){return TR['stn_'+st][lg()==='ru'?0:1]}
 function stSub(st){return TR['st_'+st+'_s'][lg()==='ru'?0:1]}
 function curSt(){var a=active();return a?shSt(a):(S.st||'cnc')}
@@ -914,7 +944,7 @@ function snapshot(){var sh=active();UNDO=sh?JSON.stringify(sh):null}
 function toast(text,undo){UI.toast={text:text,undo:!!undo};renderToast();clearTimeout(toast.t);toast.t=setTimeout(function(){UI.toast=null;renderToast()},6000)}
 function startShift(op,ord,mat,oid,st){
   var t0=Date.now();st=normSt(st);
-  var ev0={t:t0,s:SETS[st].first,r:null,o:ord||'',oid:oid||''};if(st==='cnc')ev0.m=mat||'';
+  var ev0={t:t0,s:SETS[st].first,r:null,o:ord||'',oid:oid||''};if(hasM(st))ev0.m=mat||'';
   var sh={id:'sh_'+t0.toString(36),date:ymd(t0),op:op||'—',st:st,start:t0,end:null,ev:[ev0],sh:[],upd:t0};
   if(st!=='cnc')sh.pl=[];
   S.shifts[sh.id]=sh;S.activeId=sh.id;S.op=op;S.ord=ord;S.mat=mat;S.oid=oid||'';S.st=st;UI.viewId=null;UI.tab='shift';UNDO=null;useSt(st);touch(sh);
@@ -959,7 +989,7 @@ function parseDefectCtx(note){
 }
 /* заказ в работе: контекст последнего события, не относящегося к браку (dc) */
 function workCtx(sh){var i=sh.ev.length-1;while(i>0&&sh.ev[i].dc)i--;var e=sh.ev[i];return{o:e.o||'',m:e.m||'',oid:e.oid||''}}
-function mkEv(sh,t0,s,r,cx){var e={t:t0,s:s,r:r||null,o:cx.o||'',oid:cx.oid||''};if(shSt(sh)==='cnc')e.m=cx.m||'';return e}
+function mkEv(sh,t0,s,r,cx){var e={t:t0,s:s,r:r||null,o:cx.o||'',oid:cx.oid||''};if(hasM(shSt(sh)))e.m=cx.m||'';return e}
 function setState(k,r,note,tl,src){
   var sh=active();if(!sh)return;var cur=last(sh);snapshot();var auto=false,cnc=shSt(sh)==='cnc';useSt(shSt(sh));
   var cx,dc=false;
@@ -991,7 +1021,7 @@ function setNote(v){var sh=active();if(!sh)return;var cur=last(sh);snapshot();if
 function toggleRw(){var sh=active();if(!sh)return;var cur=last(sh);if(cur.s!=='work')return;snapshot();cur.r=cur.r==='rw'?null:'rw';if(cur.dc&&cur.r!=='rw'){var wc=workCtx(sh);cur.o=wc.o;cur.m=wc.m;cur.oid=wc.oid;delete cur.dc}touch(sh);feedback();if(cur.r==='rw')toast(t('rw_on'),true);render()}
 function setCtx(o,m,oid){
   var sh=active();if(!sh)return;var cur=last(sh);oid=oid||'';if((cur.o||'')===o&&(cur.m||'')===m&&(cur.oid||'')===oid)return;
-  snapshot();var e={t:Math.max(Date.now(),cur.t+1),s:cur.s,r:cur.r,o:o,m:m,oid:oid};if(cur.n)e.n=cur.n;if(cur.tl)e.tl=cur.tl;if(cur.src)e.src=cur.src;if(shSt(sh)!=='cnc')delete e.m;
+  snapshot();var e={t:Math.max(Date.now(),cur.t+1),s:cur.s,r:cur.r,o:o,m:m,oid:oid};if(cur.n)e.n=cur.n;if(cur.tl)e.tl=cur.tl;if(cur.src)e.src=cur.src;if(!hasM(shSt(sh)))delete e.m;
   if(cur.dc){e.dc=1;sh.ev.push(e);touch(sh);render();return}
   sh.ev.push(e);S.ord=o;S.mat=m;S.oid=oid;touch(sh);render();
 }
@@ -1005,7 +1035,7 @@ function applyOrderPick(name,mat,oid){
 function addSheet(){var sh=active();if(!sh)return;var ls=sh.sh[sh.sh.length-1];if(ls&&ls.a&&Date.now()-ls.t<45000){toast(t('sheet_dup',sh.sh.length));return}snapshot();var cur=last(sh);sh.sh.push({t:Date.now(),o:cur.o,m:cur.m,oid:cur.oid});touch(sh);feedback();toast(t('sheet_rec',sh.sh.length),true);render()}
 function removeSheet(){var sh=active();if(!sh||!sh.sh.length)return;snapshot();sh.sh.pop();touch(sh);render()}
 var DUP_MS=10000;
-function addCab(){var sh=active();if(!sh)return;var lc=sh.sh[sh.sh.length-1];if(lc&&Date.now()-lc.t<DUP_MS){useSt(shSt(sh));toast(t('cab_dup'));return}snapshot();var cur=last(sh);useSt(shSt(sh));sh.sh.push({t:Date.now(),o:cur.o,oid:cur.oid});touch(sh);feedback();toast(shSt(sh)==='reu'?t('trl_rec',sh.sh.length):t('cab_rec',sh.sh.length),true);render()}
+function addCab(){var sh=active();if(!sh)return;var lc=sh.sh[sh.sh.length-1];if(lc&&Date.now()-lc.t<DUP_MS){useSt(shSt(sh));toast(t('cab_dup'));return}snapshot();var cur=last(sh);useSt(shSt(sh));var cx2={t:Date.now(),o:cur.o,oid:cur.oid};if(shSt(sh)==='kom')cx2.m=cur.m||'';sh.sh.push(cx2);touch(sh);feedback();toast(shSt(sh)==='reu'?t('trl_rec',sh.sh.length):t('cab_rec',sh.sh.length),true);render()}
 function addPallet(){var sh=active();if(!sh)return;var lp=(sh.pl||[])[(sh.pl||[]).length-1];if(lp&&Date.now()-lp.t<DUP_MS){useSt(shSt(sh));toast(t('cab_dup'));return}snapshot();var cur=last(sh);useSt(shSt(sh));if(!sh.pl)sh.pl=[];sh.pl.push({t:Date.now(),o:cur.o,oid:cur.oid});touch(sh);feedback();toast(t('pal_rec',sh.pl.length),true);render()}
 function npl(sh){return(sh.pl||[]).length}
 /* переключения между заказами внутри смены (tehtävänvaihto) */
@@ -1069,7 +1099,8 @@ function summary(sh,now){
   var tr=cls.VA+cls.NVA+cls.Hukka,ts=sh.sh.map(function(x){return x.t}).sort(function(a,b){return a-b});
   var avg=netAvg(sg,ts),byMat={};
   if(st==='cnc')sh.sh.forEach(function(x){var m=x.m||t('nomat');byMat[m]=(byMat[m]||0)+1});
-  return {sg:sg,cls:cls,rw:rw,drawer:drawer,over:over,area:area,auto:sh.sh.filter(function(x){return x.a}).length,byState:byState,byR:byR,bySrc:bySrc,brk:brk,span:span,tracked:tr,par:par,n:sh.sh.length,avg:avg,byMat:byMat,sw:switches(sh)};
+  var byType=null;if(st==='kom'){byType={};var bt=function(k){return byType[k]||(byType[k]={n:0,d:0,fit:0})};sg.forEach(function(x){if(x.s==='area'||x.s==='break')return;var b=bt(x.m||'');b.d+=x.d;if(x.s==='fit')b.fit+=x.d});sh.sh.forEach(function(x){bt(x.m||'').n++})}
+  return {byType:byType,sg:sg,cls:cls,rw:rw,drawer:drawer,over:over,area:area,auto:sh.sh.filter(function(x){return x.a}).length,byState:byState,byR:byR,bySrc:bySrc,brk:brk,span:span,tracked:tr,par:par,n:sh.sh.length,avg:avg,byMat:byMat,sw:switches(sh)};
 }
 function parList(byR,n){return Object.keys(byR).map(function(k){var p=k.split('|');return{st:p[0],s:p[1],r:p[2]||null,d:byR[k]}}).sort(function(a,b){return b.d-a.d}).slice(0,n)}
 function pct(v,tt){return tt>0?Math.round(v/tt*100)+'%':'—'}
@@ -1110,7 +1141,13 @@ function makeSampleR(){
   plan.forEach(function(p){ev.push({t:t0,s:p[0],r:p[0]==='break'?'coffee':p[0]==='misc'?'meeting':null,o:'Esimerkki',oid:''});t0+=p[1]*60000;if(p[0]==='sort')tr.push({t:t0-30000,o:'Esimerkki',oid:''})});
   return {id:'sample',sample:true,st:'reu',date:ymd(start),op:'',start:start,end:t0,ev:ev,sh:tr,pl:[],upd:0};
 }
-function getSample(st){st=normSt(st);return SAMPLES[st]||(SAMPLES[st]=(st==='pak'?makeSampleP():st==='reu'?makeSampleR():makeSample(st)))}
+function makeSampleM(){
+  var d=new Date();d.setHours(7,0,0,0);var t0=d.getTime(),start=t0,ev=[],pc=[],ty='Kuutioallas M';
+  var plan=[['prep',null,15],['check',null,10],['fit','trim',25],['glue',null,40],['fit','angle',20],['mill',null,35],['break','coffee',15],['mount',null,30],['wait','cure',15],['mill',null,40],['break','lunch',30],['qc',null,10],['move',null,15],['area',null,45],['s5',null,10]];
+  plan.forEach(function(p){ev.push({t:t0,s:p[0],r:p[1],o:'Esimerkki',oid:'',m:ty});t0+=p[2]*60000;if(p[0]==='qc'){pc.push({t:t0-60000,o:'Esimerkki',oid:'',m:ty});pc.push({t:t0-30000,o:'Esimerkki',oid:'',m:ty})}});
+  return {id:'sample',sample:true,st:'kom',date:ymd(start),op:'',start:start,end:t0,ev:ev,sh:pc,pl:[],upd:0};
+}
+function getSample(st){st=normSt(st);return SAMPLES[st]||(SAMPLES[st]=(st==='pak'?makeSampleP():st==='reu'?makeSampleR():st==='kom'?makeSampleM():makeSample(st)))}
 /* дубли (смена записана дважды — вручную и в приложении) помечаются dup:true в базе и не участвуют ни в одном расчёте */
 function realShifts(){return Object.keys(S.shifts).map(function(k){return S.shifts[k]}).filter(function(s){return okShift(s)&&!s.dup}).sort(function(a,b){return b.start-a.start})}
 function cncShifts(){return realShifts().filter(function(s){return shSt(s)==='cnc'})}
@@ -1225,7 +1262,7 @@ function parseOrderMats(txt){
 }
 /* время и материалы, фактически потраченные на заказ — по привязке oid в событиях смен */
 function orderStats(oid){
-  var now=Date.now(),cls={VA:0,NVA:0,Hukka:0},byMat={},tr=0,area=0,by={cnc:{tr:0,va:0,n:0,pal:0},reu:{tr:0,va:0,n:0,pal:0},kok:{tr:0,va:0,n:0,pal:0},pak:{tr:0,va:0,n:0,pal:0}};
+  var now=Date.now(),cls={VA:0,NVA:0,Hukka:0},byMat={},tr=0,area=0,by={cnc:{tr:0,va:0,n:0,pal:0},reu:{tr:0,va:0,n:0,pal:0},kok:{tr:0,va:0,n:0,pal:0},pak:{tr:0,va:0,n:0,pal:0},kom:{tr:0,va:0,n:0,pal:0}};
   realShifts().forEach(function(sh){
     var st=shSt(sh);if(!by[st])by[st]={tr:0,va:0,n:0,pal:0};
     segs(sh,now).forEach(function(x){
@@ -1310,7 +1347,7 @@ async function exportCsv(kind){
     fn='vuoro_laskurit';
     rows=[['shift_id','date','station','operator','type','time','order','material','seconds_since_prev','auto']];
     list.forEach(function(sh){
-      var prev=null,k=shSt(sh)==='cnc'?'levy':shSt(sh)==='reu'?'karry':'kaappi';
+      var prev=null,k=shSt(sh)==='cnc'?'levy':shSt(sh)==='reu'?'karry':shSt(sh)==='kom'?'tuote':'kaappi';
       sh.sh.slice().sort(function(a,b){return a.t-b.t}).forEach(function(x){rows.push([sh.id,sh.date,shSt(sh),sh.op,k,iso(x.t),dispO(x.o,x.oid),x.m||'',prev?Math.round((x.t-prev)/1000):'',x.a?1:'']);prev=x.t});
       var pp=null;(sh.pl||[]).slice().sort(function(a,b){return a.t-b.t}).forEach(function(x){rows.push([sh.id,sh.date,shSt(sh),sh.op,'lava',iso(x.t),dispO(x.o,x.oid),'',pp?Math.round((x.t-pp)/1000):'','']);pp=x.t});
     });
@@ -1334,7 +1371,7 @@ function tabsBar(){
   var tb=[['shift','tab_shift'],['ord','tab_ord'],['sum','tab_sum'],['trend','tab_trend'],['hist','tab_hist']];
   return '<nav class="tabs"><div class="tabs-in">'+tb.map(function(x){var s2=t2(x[1]);return '<button data-act="tab" data-t="'+x[0]+'"'+(UI.tab===x[0]?' aria-current="page"':'')+'>'+t(x[1])+(s2?'<small>'+s2+'</small>':'')+'</button>'}).join('')+'</div></nav>';
 }
-var STC={cnc:'--c-prep',reu:'--c-shelf',kok:'--c-work',pak:'--c-pack'};
+var STC={cnc:'--c-prep',reu:'--c-shelf',kok:'--c-work',pak:'--c-pack',kom:'--c-over'};
 function stTiles(sel){
   return '<div class="stg">'+STN.map(function(k){return '<button class="stt" style="--sc:var('+STC[k]+')" data-act="stpick" data-s="'+k+'" aria-pressed="'+(sel===k)+'"><b>'+esc(stShort(k))+'</b><small>'+esc(stSub(k))+'</small></button>'}).join('')+'</div>';
 }
@@ -1342,8 +1379,8 @@ function startCard(){
   var mine=(S.op||'').trim().toLowerCase();
   var open=realShifts().filter(function(s){return !s.end&&s.id!==S.activeId&&(!mine||(s.op||'').trim().toLowerCase()===mine)}).sort(function(a,b){return b.start-a.start})[0]||null;
   var adopt=open?'<div class="card"><h4>'+t('adopt_h')+'</h4><p class="muted">'+t('adopt_p',esc(open.op),hm(open.start),esc(stShort(shSt(open))))+'</p><button class="bigbtn sm" data-act="adopt" data-id="'+open.id+'">'+t('adopt_b')+'</button></div>':'';
-  var cnc=S.st==='cnc';
-  var ordSub='<div>'+(S.ord?('<div style="font-weight:600">'+esc(dispO(S.ord,S.oid))+'</div>'+(cnc&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>')+'</div>';
+  var cnc=hasM(S.st);
+  var ordSub='<div>'+(S.ord?('<div style="font-weight:600">'+esc(dispO(S.ord,S.oid))+'</div>'+(cnc&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':'')):'<div class="muted">'+t('ord_unset')+'</div>'+(S.st==='kom'&&S.mat?'<div class="muted" style="font-size:13px">'+esc(S.mat)+'</div>':''))+'</div>';
   return '<section class="card start"><h4>'+bi('start_h')+'</h4><p>'+t('start_p')+'</p>'
    +'<div class="field"><label>'+bi('st_h')+'</label>'+stTiles(S.st)+'</div>'
    +'<div class="field"><label for="st-op">'+t('op_l')+'</label><input id="st-op" value="'+esc(S.op)+'" autocomplete="off" maxlength="12"'+(UI.user&&!UI.user.admin?' readonly aria-describedby="op-lock"':'')+'>'+(UI.user&&!UI.user.admin?'<small id="op-lock" class="muted">'+t('pp_op_locked')+'</small>':'')+'</div>'
@@ -1353,6 +1390,11 @@ function startCard(){
 function counterHtml(sh){
   var n=sh.sh.length;
   var stc=shSt(sh),pk=stc==='pak';
+  if(stc==='kom'){
+    var ct=last(sh).m||'';
+    return '<section class="sheets"><div class="line"><span>'+t('kom_l')+'<br><span id="ago">'+esc(agoText(sh))+'</span></span><b>'+n+'</b></div>'
+     +'<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch"><button class="bigbtn" data-act="cab">'+t('kom_b')+'<small>'+esc(ct||t('kom_none'))+'</small></button><button class="mini" data-act="unsheet" aria-label="'+t('uncab')+'"'+(n?'':' disabled')+'>−1</button></div></section>';
+  }
   if(stc==='reu'){
     return '<section class="sheets"><div class="line"><span>'+t('reu_l')+'<br><span id="ago">'+esc(agoText(sh))+'</span></span><b>'+n+'</b></div>'
      +'<div style="display:grid;grid-template-columns:1fr auto;gap:10px;align-items:stretch"><button class="bigbtn" data-act="cab">'+t('reu_b')+(t('reu_s')?'<small>'+t('reu_s')+'</small>':'')+'</button><button class="mini" data-act="unsheet" aria-label="'+t('uncab')+'"'+(n?'':' disabled')+'>−1</button></div></section>';
@@ -1414,7 +1456,9 @@ function viewSum(){
    +'<div class="axis"><span>'+hm(sh.start)+'</span><span>'+hm(end)+'</span></div><ul class="leg">'
    +STATES.filter(function(s){return m.byState[s.k]}).map(function(s){var f=ss(s);return '<li style="--c:var('+s.c+')"><span class="sw"></span><span>'+sn(s)+(f?' <span class="muted">'+f+'</span>':'')+'</span><span class="t">'+dur(m.byState[s.k])+'</span><span class="p">'+((s.k==='break'||s.k==='area')?'':pct(m.byState[s.k],m.tracked))+'</span></li>'}).join('')+'</ul></section>';
   var cnt;
-  if(st0==='reu'){
+  if(st0==='kom'){
+    cnt='<section class="card"><h4>'+bi('kom_l')+'</h4><div class="rowh"><span><b class="mono" style="font-size:28px">'+m.n+'</b> <span class="muted">'+t('n_pcs',m.n).replace(/^\d+\s*/,'')+'</span></span><span class="muted">'+t('sw_l',m.sw)+'</span></div></section>'+komTypesHtml([m.byType]);
+  }else if(st0==='reu'){
     cnt='<section class="card"><h4>'+bi('trl_h')+'</h4><div class="rowh"><span><b class="mono" style="font-size:28px">'+m.n+'</b> <span class="muted">'+t('trl_w')+'</span></span><span class="muted">'+(m.n>1?t('avg_trl',dur(m.avg)):'—')+'</span></div></section>';
   }else if(st0!=='cnc'){
     cnt='<section class="card"><h4>'+bi('cabs_h')+'</h4><div class="rowh"><span><b class="mono" style="font-size:28px">'+m.n+'</b> <span class="muted">'+t('cabs_w')+'</span></span><span class="muted">'+(m.n>1?t('avg_l',dur(m.avg)):'—')+'</span></div>'
@@ -1443,7 +1487,15 @@ function fltHtml(){
   var row2=(ops.length&&seesPeople())?'<h4 style="margin:14px 0 8px">'+t('flt_h')+'</h4><div class="chips" style="margin-top:0">'+[''].concat(ops).map(function(o){return '<button data-act="opf" data-o="'+esc(o)+'" aria-pressed="'+(opFilter()===o)+'">'+(o?esc(o):t('flt_all'))+'</button>'}).join('')+'</div>':'';
   return '<section class="card"><h4>'+t('st_h')+'</h4>'+row1+row2+'</section>';
 }
-function unitsOf(st,n){return st==='cnc'?t('n_sheets',n):st==='reu'?t('n_trl',n):t('n_cabs',n)}
+function unitsOf(st,n){return st==='cnc'?t('n_sheets',n):st==='reu'?t('n_trl',n):st==='kom'?t('n_pcs',n):t('n_cabs',n)}
+/* время по типам изделий композита: одна или несколько смен */
+function komTypesHtml(list){
+  var acc={};list.forEach(function(bt){if(!bt)return;Object.keys(bt).forEach(function(k){var a=acc[k]||(acc[k]={n:0,d:0,fit:0});a.n+=bt[k].n;a.d+=bt[k].d;a.fit+=bt[k].fit})});
+  var keys=KOM_TYPES.concat(['']).filter(function(k){return acc[k]&&(acc[k].d>0||acc[k].n>0)});
+  if(!keys.length)return '';
+  return '<section class="card"><h4>'+bi('kom_h')+'</h4><p class="muted" style="margin:0 0 8px;font-size:13px">'+t('kom_col')+'</p><div class="par">'+keys.map(function(k){var a=acc[k];
+    return '<div class="r1"><span>'+esc(k||t('kom_none'))+'</span><span class="mono">'+a.n+' · '+dur(a.d)+' · '+(a.n?dur(a.d/a.n):'—')+' · '+(a.n?dur(a.fit/a.n):dur(a.fit))+'</span></div>'}).join('')+'</div><p class="muted" style="margin:8px 0 0;font-size:13px">'+t('kom_note')+'</p></section>';
+}
 function nUnits(sh,n){return unitsOf(shSt(sh),n)}
 function peopleCard(){
   if(!(UI.ed&&UI.fb))return '';
@@ -1527,7 +1579,8 @@ function viewTrend(){
     return'<button class="row" data-act="open" data-id="'+d.id+'"><span class="a">'+esc(dlabel(d.start))+(d.open?' · '+t('chip_live'):'')+'</span><span class="b">'+(d.va!=null?Math.round(d.va*100)+'%':'—')+'</span><span class="c">'+esc(stShort(d.st))+' · '+unitsOf(d.st,d.n)+'</span></button>';
   }).join('')+'</div></section>';
   var srcc=(f==='kok'||f==='all')?srcHtml(m.bySrc):'';
-  return fltHtml()+head+(f==='kok'?taktHtml():'')+wkchart+kp+paretoHtml(m.par,f==='all')+srcc+daysc;
+  var komc=f==='kom'?komTypesHtml(list.map(function(sh){return summary(sh,now).byType})):'';
+  return fltHtml()+head+(f==='kok'?taktHtml():'')+wkchart+kp+komc+paretoHtml(m.par,f==='all')+srcc+daysc;
 }
 function orderRow(o){
   var st=orderStats(o.id),sheetsTot=(o.mats||[]).reduce(function(s,x){return s+(x.sheets||0)},0);
@@ -1559,6 +1612,7 @@ function ordStatsHtml(oid){
   if(st.by.kok.tr>0)kv+='<span>'+t('ord_kok_row')+'</span><b class="mono">'+dur(st.by.kok.tr)+' · '+kk+' '+t('cabs_w')+(st.by.kok.pal?' · '+t('n_pal',st.by.kok.pal):'')+'</b>';
   if(st.by.reu.tr>0)kv+='<span>'+t('ord_reu_row')+'</span><b class="mono">'+dur(st.by.reu.tr)+(st.by.reu.n?' · '+t('n_trl',st.by.reu.n):'')+'</b>';
   if(st.by.pak.tr>0||st.by.pak.n)kv+='<span>'+t('ord_pak_row')+'</span><b class="mono">'+dur(st.by.pak.tr)+' · '+st.by.pak.n+(k?' / '+k:'')+' '+t('cabs_w')+(st.by.pak.pal?' · '+t('n_pal',st.by.pak.pal):'')+'</b>';
+  if(st.by.kom.tr>0||st.by.kom.n)kv+='<span>'+t('ord_kom_row')+'</span><b class="mono">'+dur(st.by.kom.tr)+' · '+t('n_pcs',st.by.kom.n)+'</b>';
   if(k)kv+='<span>'+t('ord_time_percab')+'</span><b class="mono">'+dur(st.tr/k)+'</b><span>'+t('ord_time_va_percab')+'</span><b class="mono">'+dur(st.cls.VA/k)+'</b>';
   if(kk>0&&st.by.kok.tr>0)kv+='<span>'+t('ord_kok_percab')+'</span><b class="mono">'+dur(st.by.kok.tr/kk)+'</b><span>'+t('ord_kok_va_percab')+'</span><b class="mono">'+dur(st.by.kok.va/kk)+'</b>';
   if(st.area>0)kv+='<span>'+t('ord_area')+'</span><b class="mono">'+dur(st.area)+'</b>';
@@ -1735,9 +1789,9 @@ function renderModal(){
     var st=SMAP[m.k],cur=active()?last(active()):null,curR=cur&&cur.s===m.k?cur.r:null,s2=ss(st),withSrc=(CS==='kok'&&(st.k==='defect'||st.k==='over'));
     function sm(x){return x?'<small>'+x+'</small>':''}
     var srcRow=withSrc?'<p class="q" style="margin-top:2px">'+t('src_q')+'</p><div class="chips" style="margin:4px 0 10px">'+['cnc','edge','design','kit','asm'].map(function(k){return '<button data-act="srcsel" data-s="'+k+'" aria-pressed="'+(m.src===k)+'">'+esc(srcName(k))+'</button>'}).join('')+'</div>':'';
-    if(st.noteOnly){inner='<h3>'+sn(st)+(s2?'<span>'+s2+'</span>':'')+'</h3><div class="noterow"><input id="in-note2" value="'+esc(m.nt||'')+'" placeholder="'+esc(t('misc_ph'))+'" maxlength="120" autocomplete="off"><button class="bigbtn" data-act="reason" data-k="'+st.k+'" data-r="">'+t('save_b')+'</button></div><div class="two" style="grid-template-columns:1fr"><button data-act="close">'+t('cancel')+'</button></div>';el.innerHTML='<div class="ov" data-act="ovclose"><div class="md" role="dialog" aria-modal="true">'+inner+'</div></div>';setTimeout(function(){var i=$('#in-note2');if(i)i.focus()},30);return}
+    if(st.noteOnly){inner='<h3>'+sn(st)+(s2?'<span>'+s2+'</span>':'')+'</h3><div class="noterow"><input id="in-note2" value="'+esc(m.nt||'')+'" placeholder="'+esc(st.ph?st.ph[lg()==='ru'?0:1]:t('misc_ph'))+'" maxlength="120" autocomplete="off"><button class="bigbtn" data-act="reason" data-k="'+st.k+'" data-r="">'+t('save_b')+'</button></div><div class="two" style="grid-template-columns:1fr"><button data-act="close">'+t('cancel')+'</button></div>';el.innerHTML='<div class="ov" data-act="ovclose"><div class="md" role="dialog" aria-modal="true">'+inner+'</div></div>';setTimeout(function(){var i=$('#in-note2');if(i)i.focus()},30);return}
     inner='<h3>'+sn(st)+(s2?'<span>'+s2+'</span>':'')+'</h3><p class="q">'+t('what')+'</p>'
-     +((st.k==='defect'||st.k==='over'||st.k==='misc'||st.k==='area')?'<div class="noterow" style="grid-template-columns:1fr;margin:0 0 4px"><input id="in-note2" value="'+esc(m.nt||'')+'" placeholder="'+esc(t((st.k==='defect'||st.k==='over')?'note_def_ph':'note_opt'))+'" maxlength="120" autocomplete="off"></div>':'')
+     +((st.k==='defect'||st.k==='over'||st.k==='misc'||st.k==='area'||st.k==='fit')?'<div class="noterow" style="grid-template-columns:1fr;margin:0 0 4px"><input id="in-note2" value="'+esc(m.nt||'')+'" placeholder="'+esc(t((st.k==='defect'||st.k==='over')?'note_def_ph':'note_opt'))+'" maxlength="120" autocomplete="off"></div>':'')
      +srcRow+st.reasons.map(function(r){return '<button class="rb" data-act="reason" data-k="'+st.k+'" data-r="'+r[0]+'" aria-pressed="'+(curR===r[0])+'">'+rlab(r)+sm(rsub(r))+'</button>'}).join('')
      +(m.other?'<div class="noterow"><input id="in-note" placeholder="'+esc(t('note_ph'))+'" maxlength="80" autocomplete="off"><button class="bigbtn" data-act="note" data-k="'+st.k+'">'+t('save_b')+'</button></div>'
        :'<button class="rb" data-act="other" data-k="'+st.k+'">'+t('other')+sm(t2('other_s')||(lg()==='ru'?TR.other_s[0]:''))+'</button>')
@@ -1802,6 +1856,11 @@ function renderModal(){
      +(opts.length?opts.map(function(o){return '<button class="rb" data-act="ordpicksel" data-id="'+o.id+'">'+esc(ordLabel(o))+'<small>'+t('ord_cabs_short',o.k||0)+'</small></button>'}).join(''):'<p class="q">'+t('ord_pick_none')+'</p>')
      +'<button class="rb ghost" data-act="ordpicksel" data-id="">'+t('ord_unset')+'</button>'
      +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
+  }else if(m.type==='kompick'){
+    var kpo=m.oid?S.orders[m.oid]:null;
+    inner='<h3>'+(kpo?esc(ordLabel(kpo)):t('ord_unset'))+'</h3><p class="q">'+t('kom_pick_h')+'</p>'
+     +KOM_TYPES.map(function(x,i){return '<button class="rb" data-act="kompicksel" data-i="'+i+'">'+esc(x)+'</button>'}).join('')
+     +'<div class="two" style="grid-template-columns:1fr;margin-top:10px"><button data-act="close">'+t('cancel')+'</button></div>';
   }else if(m.type==='ordpickmat'){
     var pmo=S.orders[m.oid];
     inner='<h3>'+esc(ordLabel(pmo))+'</h3><p class="q">'+t('ord_pick_mat_h')+'</p>'
@@ -1837,7 +1896,7 @@ document.addEventListener('click',function(e){
     case 'stpick':var sti=$('#st-op');if(sti)S.op=(sti.value||'').trim();S.st=normSt(b.dataset.s);save();render();break;
     case 'start':var soi=$('#st-op');S.op=soi?(soi.value||'').trim():S.op;
       if(!S.st){toast(t('st_need'));break}
-      startShift(S.op,S.ord,S.st==='cnc'?S.mat:'',S.oid,S.st);render();break;
+      startShift(S.op,S.ord,hasM(S.st)?S.mat:'',S.oid,S.st);render();break;
     case 'adopt':S.activeId=b.dataset.id;if(S.shifts[b.dataset.id]){S.st=shSt(S.shifts[b.dataset.id]);if(!(S.op||'').trim())S.op=S.shifts[b.dataset.id].op||''}save();render();break;
     case 'state':var skk=b.dataset.k,sdef=SMAP[skk];if(skk!=='work'&&sdef&&!sdef.reasons.length&&!sdef.noteOnly){if(last(active()).s===skk){toast(t('already'))}else setState(skk,null);break}
       if(b.dataset.k==='work'){if(last(active()).s==='work'){toast(t('already'))}else setState('work',last(active()).s==='defect'?'rw':null)}else{UI.modal={type:'reason',k:b.dataset.k};renderModal()}break;
@@ -1908,12 +1967,17 @@ document.addEventListener('click',function(e){
     case 'ordpick':UI.modal={type:'ordpick'};renderModal();break;
     case 'ordpicksel':
       var poid=b.dataset.id;
+      if(!poid&&curSt()==='kom'){UI.modal={type:'kompick',oid:''};renderModal();break}
       if(!poid){UI.modal=null;applyOrderPick('','','');render();break}
       var pord=S.orders[poid];if(!pord){UI.modal=null;render();break}
+      if(curSt()==='kom'){UI.modal={type:'kompick',oid:poid};renderModal();break}
       var pmats=(curSt()==='cnc')?(pord.mats||[]):[];
       if(pmats.length<=1){UI.modal=null;applyOrderPick(pord.name,pmats.length?pmats[0].m:'',poid);render()}
       else{UI.modal={type:'ordpickmat',oid:poid};renderModal()}
       break;
+    case 'kompicksel':
+      var koid=UI.modal.oid||'',kord=koid?S.orders[koid]:null;
+      UI.modal=null;applyOrderPick(kord?kord.name:'',KOM_TYPES[+b.dataset.i]||'',kord?koid:'');render();break;
     case 'ordpickmatsel':
       var pmoid=UI.modal.oid,pmord=S.orders[pmoid],pmi=+b.dataset.i;
       UI.modal=null;applyOrderPick(pmord.name,pmord.mats[pmi]?pmord.mats[pmi].m:'',pmoid);render();break;
